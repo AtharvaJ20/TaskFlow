@@ -7,8 +7,10 @@ export function useTour() {
 
   useEffect(() => {
     if (!localStorage.getItem(TOUR_KEY)) {
-      // Small delay so the app renders first
-      const t = setTimeout(() => setStep(0), 600)
+      const t = setTimeout(() => {
+        localStorage.setItem(TOUR_KEY, '1')
+        setStep(0)
+      }, 600)
       return () => clearTimeout(t)
     }
   }, [])
