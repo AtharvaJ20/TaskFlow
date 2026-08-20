@@ -18,7 +18,7 @@ export function importFromJSON(json: string): Task[] {
   const arr = Array.isArray(parsed) ? parsed : []
   const valid = arr.filter(isValidTask)
   if (valid.length === 0) throw new Error('No valid tasks found in JSON')
-  return valid.map(t => ({ subtasks: [], ...t }))
+  return valid.map(t => ({ ...t, subtasks: t.subtasks ?? [] }))
 }
 
 export function importFromCSV(csv: string): Partial<Task>[] {

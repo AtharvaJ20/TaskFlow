@@ -9,7 +9,7 @@ beforeEach(() => {
 
 describe('useTasks – addTask', () => {
   it('adds a task and returns it at the front of the list', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: 'First', priority: 'medium' })
@@ -24,7 +24,7 @@ describe('useTasks – addTask', () => {
   })
 
   it('trims whitespace from the title', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: '  Buy groceries  ', priority: 'low' })
@@ -34,7 +34,7 @@ describe('useTasks – addTask', () => {
   })
 
   it('defaults priority to medium when not provided', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: 'Task' })
@@ -44,7 +44,7 @@ describe('useTasks – addTask', () => {
   })
 
   it('stores an empty tags array when tags are not provided', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: 'Task' })
@@ -54,7 +54,7 @@ describe('useTasks – addTask', () => {
   })
 
   it('sets completed to false on creation', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: 'Task' })
@@ -67,7 +67,7 @@ describe('useTasks – addTask', () => {
 
 describe('useTasks – toggleTask', () => {
   it('marks an active task as completed and sets completedAt', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: 'Task' })
@@ -84,7 +84,7 @@ describe('useTasks – toggleTask', () => {
   })
 
   it('marks a completed task as active and clears completedAt', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: 'Task' })
@@ -100,7 +100,7 @@ describe('useTasks – toggleTask', () => {
   })
 
   it('does not mutate other tasks', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: 'A' })
@@ -117,7 +117,7 @@ describe('useTasks – toggleTask', () => {
 
 describe('useTasks – deleteTask + undoDelete', () => {
   it('removes the task from the list', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => { result.current.addTask({ title: 'Task' }) })
     const id = result.current.tasks[0].id
@@ -128,7 +128,7 @@ describe('useTasks – deleteTask + undoDelete', () => {
   })
 
   it('stores the deleted task and its original index in lastDeleted', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: 'A' })
@@ -143,7 +143,7 @@ describe('useTasks – deleteTask + undoDelete', () => {
   })
 
   it('restores the task to its original position on undoDelete', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: 'A' })
@@ -160,7 +160,7 @@ describe('useTasks – deleteTask + undoDelete', () => {
   })
 
   it('clearUndo sets lastDeleted to null without restoring the task', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => { result.current.addTask({ title: 'Task' }) })
     const id = result.current.tasks[0].id
@@ -175,7 +175,7 @@ describe('useTasks – deleteTask + undoDelete', () => {
 
 describe('useTasks – updateTask', () => {
   it('applies partial changes to the target task', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => { result.current.addTask({ title: 'Old title' }) })
     const id = result.current.tasks[0].id
@@ -188,7 +188,7 @@ describe('useTasks – updateTask', () => {
   })
 
   it('sets completedAt when completed is set to true via updateTask', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => { result.current.addTask({ title: 'Task' }) })
     const id = result.current.tasks[0].id
@@ -199,7 +199,7 @@ describe('useTasks – updateTask', () => {
   })
 
   it('clears completedAt when completed is set to false via updateTask', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => { result.current.addTask({ title: 'Task' }) })
     const id = result.current.tasks[0].id
@@ -213,7 +213,7 @@ describe('useTasks – updateTask', () => {
 
 describe('useTasks – clearCompleted', () => {
   it('removes all completed tasks and leaves active ones', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => {
       result.current.addTask({ title: 'Active' })
@@ -231,7 +231,7 @@ describe('useTasks – clearCompleted', () => {
 
 describe('useTasks – localStorage persistence', () => {
   it('persists tasks to localStorage on change', () => {
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     act(() => { result.current.addTask({ title: 'Persisted' }) })
 
@@ -243,7 +243,7 @@ describe('useTasks – localStorage persistence', () => {
     const seed = [{ id: '1', title: 'Seeded', completed: false, priority: 'low', tags: [], createdAt: new Date().toISOString() }]
     localStorage.setItem('todo-tasks', JSON.stringify(seed))
 
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     expect(result.current.tasks[0].title).toBe('Seeded')
   })
@@ -251,7 +251,7 @@ describe('useTasks – localStorage persistence', () => {
   it('returns an empty list when localStorage contains invalid JSON', () => {
     localStorage.setItem('todo-tasks', 'not-json')
 
-    const { result } = renderHook(() => useTasks())
+    const { result } = renderHook(() => useTasks(null))
 
     expect(result.current.tasks).toEqual([])
   })
