@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Default accent: indigo — space-separated RGB channels for Tailwind opacity support */
+  :root {
+    --ca-50:  238 242 255;
+    --ca-100: 224 231 255;
+    --ca-300: 165 180 252;
+    --ca-400: 129 140 248;
+    --ca-500:  99 102 241;
+    --ca-600:  79  70 229;
+    --ca-700:  67  56 202;
+    --ca-900:  49  46 129;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Visible focus ring for keyboard users, suppressed for mouse */
+  :focus-visible {
+    outline: 2px solid rgb(var(--ca-500));
+    outline-offset: 2px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}

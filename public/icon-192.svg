@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="40" fill="#6366f1"/>
+  <!-- checkmark circle -->
+  <circle cx="96" cy="82" r="36" fill="none" stroke="white" stroke-width="7"/>
+  <path d="M78 82l12 12 24-24" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- task lines -->
+  <rect x="54" y="131" width="84" height="7" rx="3.5" fill="white" opacity="0.9"/>
+  <rect x="54" y="150" width="60" height="7" rx="3.5" fill="white" opacity="0.5"/>
+</svg>

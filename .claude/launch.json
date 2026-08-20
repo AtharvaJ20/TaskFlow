@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ToDo Dev",
+      "runtimeExecutable": "C:\\Users\\Admin\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+      "runtimeArgs": ["node_modules\\vite\\bin\\vite.js", "--port", "5173"],
+      "port": 5173
+    }
+  ]
+}
