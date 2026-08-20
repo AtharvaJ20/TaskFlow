@@ -179,6 +179,12 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
   useEffect(() => { onLogTimeRef.current = onLogTime }, [onLogTime])
 
   useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
+  useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') { onClose(); return }
       if (e.key === ' ' && e.target === document.body) { e.preventDefault(); setRunning(r => !r) }
@@ -264,7 +270,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-gray-950/95 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 bg-gray-950/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-label="Focus mode"
@@ -313,8 +319,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
         </svg>
       </button>
 
-      <div className="min-h-full flex items-center justify-center p-4">
-      <div className="w-full max-w-md flex flex-col items-center gap-7 py-12">
+      <div className="w-full max-w-md flex flex-col items-center gap-7 py-8">
 
         {/* Mode tabs */}
         <div className="flex items-center gap-1 bg-gray-900 rounded-full p-1">
@@ -459,7 +464,6 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
             </button>
           )}
         </div>
-      </div>
       </div>
     </div>
   )
