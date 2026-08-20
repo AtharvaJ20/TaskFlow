@@ -55,6 +55,7 @@ export function useAuth() {
   async function signOut() {
     await supabase.auth.signOut()
     localStorage.removeItem(GUEST_KEY)
+    localStorage.removeItem('taskflow-toured')
     setUser(null)
     setMode('auth')
   }
