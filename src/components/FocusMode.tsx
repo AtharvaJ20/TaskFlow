@@ -61,21 +61,40 @@ function playMelody(type: 'work' | 'break') {
     const notes: { freq: number; start: number; dur: number }[] =
       type === 'work'
         ? [
-            // Triumphant ascending fanfare (~3.5s)
-            { freq: 523,  start: 0.0,  dur: 0.35 },
-            { freq: 659,  start: 0.4,  dur: 0.35 },
-            { freq: 784,  start: 0.8,  dur: 0.35 },
-            { freq: 1047, start: 1.2,  dur: 0.55 },
-            { freq: 784,  start: 1.85, dur: 0.25 },
-            { freq: 1047, start: 2.15, dur: 0.9  },
+            // Triumphant ascending fanfare (~10s)
+            { freq: 523,  start: 0.0,  dur: 0.4 },
+            { freq: 659,  start: 0.5,  dur: 0.4 },
+            { freq: 784,  start: 1.0,  dur: 0.4 },
+            { freq: 1047, start: 1.5,  dur: 0.7 },
+            { freq: 784,  start: 2.3,  dur: 0.3 },
+            { freq: 880,  start: 2.7,  dur: 0.3 },
+            { freq: 1047, start: 3.1,  dur: 0.7 },
+            { freq: 880,  start: 3.9,  dur: 0.3 },
+            { freq: 784,  start: 4.3,  dur: 0.3 },
+            { freq: 1047, start: 4.7,  dur: 0.5 },
+            { freq: 1175, start: 5.3,  dur: 0.5 },
+            { freq: 1047, start: 5.9,  dur: 0.5 },
+            { freq: 880,  start: 6.5,  dur: 0.5 },
+            { freq: 1047, start: 7.1,  dur: 0.5 },
+            { freq: 1175, start: 7.7,  dur: 0.6 },
+            { freq: 1047, start: 8.4,  dur: 1.5 },
           ]
         : [
-            // Gentle descending wind-down (~3s)
-            { freq: 880,  start: 0.0,  dur: 0.4  },
-            { freq: 784,  start: 0.5,  dur: 0.4  },
-            { freq: 659,  start: 1.0,  dur: 0.4  },
-            { freq: 523,  start: 1.5,  dur: 0.4  },
-            { freq: 392,  start: 2.0,  dur: 0.8  },
+            // Gentle wind-down (~10s)
+            { freq: 880,  start: 0.0,  dur: 0.5 },
+            { freq: 784,  start: 0.65, dur: 0.5 },
+            { freq: 659,  start: 1.3,  dur: 0.5 },
+            { freq: 523,  start: 1.95, dur: 0.5 },
+            { freq: 659,  start: 2.6,  dur: 0.5 },
+            { freq: 784,  start: 3.25, dur: 0.5 },
+            { freq: 659,  start: 3.9,  dur: 0.5 },
+            { freq: 523,  start: 4.55, dur: 0.5 },
+            { freq: 440,  start: 5.2,  dur: 0.5 },
+            { freq: 392,  start: 5.85, dur: 0.5 },
+            { freq: 440,  start: 6.5,  dur: 0.5 },
+            { freq: 392,  start: 7.15, dur: 0.5 },
+            { freq: 349,  start: 7.8,  dur: 0.5 },
+            { freq: 392,  start: 8.45, dur: 1.5 },
           ]
 
     notes.forEach(({ freq, start, dur }, i) => {
