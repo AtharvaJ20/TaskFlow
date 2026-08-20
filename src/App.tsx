@@ -24,6 +24,7 @@ import { useLists, LIST_COLORS } from './hooks/useLists'
 import { exportJSON, exportCSV } from './utils/exportTasks'
 import { importFromJSON, importFromCSV } from './utils/importTasks'
 import SoundSettingsPanel from './components/SoundSettingsPanel'
+import HelpModal from './components/HelpModal'
 import { type SoundSettings, loadSoundSettingsFull, saveSoundSettings } from './utils/soundSettings'
 import type { Task, Filter } from './types/task'
 
@@ -54,6 +55,7 @@ export default function App() {
   const [showStats, setShowStats] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showSoundSettings, setShowSoundSettings] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
   const [soundSettings, setSoundSettings] = useState<SoundSettings>(loadSoundSettingsFull)
   const [soundSaveError, setSoundSaveError] = useState<string | null>(null)
   const { step: tourStep, next: tourNext, dismiss: tourDismiss } = useTour()
@@ -458,6 +460,22 @@ export default function App() {
           </button>
         </div>
 
+        {/* Help button */}
+        <div className="px-3 pb-2">
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500"
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 flex-shrink-0" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+              <path d="M12 8a2 2 0 0 1 1.73 3C13 12 12 12.5 12 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="12" cy="16.5" r="0.75" fill="currentColor" stroke="currentColor" strokeWidth="0.5" />
+            </svg>
+            Help
+          </button>
+        </div>
+
         {/* Account section */}
         <div className="px-3 pb-4 border-t border-gray-100 dark:border-gray-800 pt-3">
           {mode === 'user' && user ? (
@@ -627,6 +645,10 @@ export default function App() {
 
       {showStats && (
         <StatsModal tasks={tasks} onClose={() => setShowStats(false)} />
+      )}
+
+      {showHelp && (
+        <HelpModal onClose={() => setShowHelp(false)} />
       )}
 
       {focusTask && (
@@ -821,6 +843,18 @@ export default function App() {
               <button type="button" onClick={() => { setShowStats(true); setMobileMenuOpen(false) }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus:outline-none">
                 <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 flex-shrink-0" aria-hidden="true"><path d="M3 17l5-5 4 4 5-6 4 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 Statistics
+              </button>
+            </div>
+
+            {/* Help */}
+            <div className="px-3 py-2">
+              <button type="button" onClick={() => { setShowHelp(true); setMobileMenuOpen(false) }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus:outline-none">
+                <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 flex-shrink-0" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                  <path d="M12 8a2 2 0 0 1 1.73 3C13 12 12 12.5 12 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="12" cy="16.5" r="0.75" fill="currentColor" stroke="currentColor" strokeWidth="0.5" />
+                </svg>
+                Help
               </button>
             </div>
 
