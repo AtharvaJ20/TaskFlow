@@ -38,9 +38,9 @@ export function useAuth() {
 
   async function signUp(email: string, password: string): Promise<'confirm' | 'done'> {
     setAuthError(null)
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    const redirectTo = `${window.location.origin}/`
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
     if (error) { setAuthError(error.message); throw error }
-    // If email confirmation is disabled, session is set immediately
     return data.session ? 'done' : 'confirm'
   }
 
