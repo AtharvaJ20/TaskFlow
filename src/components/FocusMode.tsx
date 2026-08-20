@@ -10,8 +10,11 @@ interface FocusModeProps {
 }
 
 const DURATIONS_KEY = 'taskflow-timer-durations'
+const SOUND_KEY = 'taskflow-sound-settings'
 const DEFAULT_WORK_MINS = 25
 const DEFAULT_BREAK_MINS = 5
+
+// ─── Timer duration settings ───────────────────────────────────────────────
 
 function loadSettings(taskId: string) {
   try {
@@ -37,31 +40,67 @@ function persistSettings(taskId: string, workMins: number, breakMins: number) {
   } catch {}
 }
 
-function fmt(secs: number) {
-  const m = Math.floor(secs / 60).toString().padStart(2, '0')
-  const s = (secs % 60).toString().padStart(2, '0')
-  return `${m}:${s}`
+// ─── Sound settings ────────────────────────────────────────────────────────
+
+interface SoundSettings {
+  volume: number          // 0.0 – 1.0
+  durationSecs: number    // 1 – 30
+  customAudioB64: string | null
+  customAudioName: string | null
 }
 
-function fmtDuration(secs: number): string {
-  if (secs < 60) return `${secs}s`
-  const m = Math.floor(secs / 60)
-  if (m < 60) return `${m}m`
-  const h = Math.floor(m / 60)
-  const rem = m % 60
-  return rem > 0 ? `${h}h ${rem}m` : `${h}h`
+const DEFAULT_SOUND: SoundSettings = {
+  volume: 0.75,
+  durationSecs: 10,
+  customAudioB64: null,
+  customAudioName: null,
 }
 
-function playMelody(type: 'work' | 'break') {
+function loadSoundSettings(): SoundSettings {
+  try {
+    const raw = localStorage.getItem(SOUND_KEY)
+    if (!raw) return DEFAULT_SOUND
+    return { ...DEFAULT_SOUND, ...JSON.parse(raw) }
+  } catch {
+    return DEFAULT_SOUND
+  }
+}
+
+function saveSoundSettings(s: SoundSettings) {
+  try {
+    // Don't persist the full base64 in the same key if it's very large;
+    // store audio separately to avoid JSON parse overhead on every load.
+    const { customAudioB64, ...rest } = s
+    localStorage.setItem(SOUND_KEY, JSON.stringify({ ...rest, hasCustomAudio: !!customAudioB64 }))
+    if (customAudioB64) localStorage.setItem(SOUND_KEY + '_audio', customAudioB64)
+    else localStorage.removeItem(SOUND_KEY + '_audio')
+  } catch {
+    // localStorage full – silently ignore
+  }
+}
+
+function loadSoundSettingsFull(): SoundSettings {
+  const base = loadSoundSettings()
+  try {
+    const audio = localStorage.getItem(SOUND_KEY + '_audio')
+    return { ...base, customAudioB64: audio ?? null }
+  } catch {
+    return base
+  }
+}
+
+// ─── Audio playback ────────────────────────────────────────────────────────
+
+function playMelody(type: 'work' | 'break', volume: number, durationSecs: number) {
   try {
     const ctx = new AudioContext()
+    const master = ctx.createGain()
+    master.gain.value = Math.max(0, Math.min(1, volume))
+    master.connect(ctx.destination)
 
-    // work done: ascending triumph C → E → G → C'
-    // break done: gentle descend G → E → C
     const notes: { freq: number; start: number; dur: number }[] =
       type === 'work'
         ? [
-            // Triumphant ascending fanfare (~10s)
             { freq: 523,  start: 0.0,  dur: 0.4 },
             { freq: 659,  start: 0.5,  dur: 0.4 },
             { freq: 784,  start: 1.0,  dur: 0.4 },
@@ -80,7 +119,6 @@ function playMelody(type: 'work' | 'break') {
             { freq: 1047, start: 8.4,  dur: 1.5 },
           ]
         : [
-            // Gentle wind-down (~10s)
             { freq: 880,  start: 0.0,  dur: 0.5 },
             { freq: 784,  start: 0.65, dur: 0.5 },
             { freq: 659,  start: 1.3,  dur: 0.5 },
@@ -97,11 +135,20 @@ function playMelody(type: 'work' | 'break') {
             { freq: 392,  start: 8.45, dur: 1.5 },
           ]
 
+    const lastNote = notes[notes.length - 1]
+    const naturalEnd = lastNote.start + lastNote.dur
+    const cutoff = Math.min(durationSecs, naturalEnd)
+
+    if (cutoff < naturalEnd) {
+      master.gain.setValueAtTime(master.gain.value, ctx.currentTime + Math.max(0, cutoff - 0.25))
+      master.gain.linearRampToValueAtTime(0.0, ctx.currentTime + cutoff)
+    }
+
     notes.forEach(({ freq, start, dur }, i) => {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
       osc.connect(gain)
-      gain.connect(ctx.destination)
+      gain.connect(master)
       osc.type = 'sine'
       osc.frequency.value = freq
       const t = ctx.currentTime + start
@@ -109,11 +156,34 @@ function playMelody(type: 'work' | 'break') {
       gain.gain.linearRampToValueAtTime(0.75, t + 0.02)
       gain.gain.exponentialRampToValueAtTime(0.001, t + dur)
       osc.start(t)
-      osc.stop(t + dur)
+      osc.stop(Math.min(t + dur, ctx.currentTime + cutoff + 0.05))
       if (i === notes.length - 1) osc.onended = () => ctx.close()
     })
+
+    setTimeout(() => { try { ctx.close() } catch {} }, (cutoff + 1) * 1000)
   } catch {}
 }
+
+function playCustomAudio(dataUrl: string, volume: number, durationSecs: number) {
+  try {
+    const audio = new Audio(dataUrl)
+    audio.volume = Math.max(0, Math.min(1, volume))
+    const p = audio.play()
+    if (p) p.catch(() => {})
+    const timer = setTimeout(() => { audio.pause(); audio.currentTime = 0 }, durationSecs * 1000)
+    audio.onended = () => clearTimeout(timer)
+  } catch {}
+}
+
+function playAlert(type: 'work' | 'break', settings: SoundSettings) {
+  if (settings.customAudioB64) {
+    playCustomAudio(settings.customAudioB64, settings.volume, settings.durationSecs)
+  } else {
+    playMelody(type, settings.volume, settings.durationSecs)
+  }
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
 
 function notify(title: string, body: string) {
   if (typeof Notification === 'undefined') return
@@ -128,19 +198,27 @@ function clampMins(v: number) {
   return Math.max(1, Math.min(99, Math.round(v)))
 }
 
-// Inline editable duration chip
+function fmt(secs: number) {
+  const m = Math.floor(secs / 60).toString().padStart(2, '0')
+  const s = (secs % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
+
+function fmtDuration(secs: number): string {
+  if (secs < 60) return `${secs}s`
+  const m = Math.floor(secs / 60)
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  const rem = m % 60
+  return rem > 0 ? `${h}h ${rem}m` : `${h}h`
+}
+
+// ─── Duration chip ─────────────────────────────────────────────────────────
+
 function DurationChip({
-  label,
-  value,
-  color,
-  disabled,
-  onSave,
+  label, value, color, disabled, onSave,
 }: {
-  label: string
-  value: number
-  color: 'accent' | 'emerald'
-  disabled: boolean
-  onSave: (v: number) => void
+  label: string; value: number; color: 'accent' | 'emerald'; disabled: boolean; onSave: (v: number) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
@@ -218,6 +296,184 @@ function DurationChip({
   )
 }
 
+// ─── Sound settings panel ──────────────────────────────────────────────────
+
+function SoundSettingsPanel({
+  settings,
+  onChange,
+}: {
+  settings: SoundSettings
+  onChange: (s: SoundSettings) => void
+}) {
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    onChange({ ...settings, volume: Number(e.target.value) / 100 })
+  }
+
+  function handleDurationChange(e: React.ChangeEvent<HTMLInputElement>) {
+    onChange({ ...settings, durationSecs: Number(e.target.value) })
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setUploadError(null)
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 3 * 1024 * 1024) {
+      setUploadError('File too large (max 3 MB). Choose a shorter clip.')
+      e.target.value = ''
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const result = ev.target?.result as string
+      onChange({ ...settings, customAudioB64: result, customAudioName: file.name })
+    }
+    reader.onerror = () => setUploadError('Could not read file.')
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  function clearCustomAudio() {
+    onChange({ ...settings, customAudioB64: null, customAudioName: null })
+  }
+
+  function preview() {
+    playAlert('work', settings)
+  }
+
+  const volumePct = Math.round(settings.volume * 100)
+
+  return (
+    <div className="w-full bg-gray-900 rounded-2xl p-4 flex flex-col gap-4">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Alert Sound</p>
+
+      {/* Volume */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-gray-400 flex items-center gap-1.5">
+            <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
+              <path d="M3 6H1v4h2l4 3V3L3 6z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+              {volumePct > 0 && <path d="M11 5.5a3.5 3.5 0 0 1 0 5M9 7a1.5 1.5 0 0 1 0 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />}
+            </svg>
+            Volume
+          </label>
+          <span className="text-xs text-gray-300 tabular-nums">{volumePct}%</span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={volumePct}
+          onChange={handleVolumeChange}
+          className="w-full accent-accent-500 h-1.5 rounded-full cursor-pointer"
+          aria-label="Alert volume"
+        />
+      </div>
+
+      {/* Duration */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-gray-400 flex items-center gap-1.5">
+            <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
+              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M8 5v3l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+            Alert duration
+          </label>
+          <span className="text-xs text-gray-300 tabular-nums">{settings.durationSecs}s</span>
+        </div>
+        <input
+          type="range"
+          min={1}
+          max={30}
+          value={settings.durationSecs}
+          onChange={handleDurationChange}
+          className="w-full accent-accent-500 h-1.5 rounded-full cursor-pointer"
+          aria-label="Alert duration in seconds"
+        />
+        <div className="flex justify-between text-xs text-gray-600">
+          <span>1s</span>
+          <span>30s</span>
+        </div>
+      </div>
+
+      {/* Custom audio */}
+      <div className="flex flex-col gap-2">
+        <p className="text-xs text-gray-400 flex items-center gap-1.5">
+          <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
+            <path d="M13 6l-5-4-5 4v8h4v-3h2v3h4V6z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+            <circle cx="8" cy="9" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+          </svg>
+          Alert sound
+        </p>
+
+        {settings.customAudioName ? (
+          <div className="flex items-center gap-2 bg-gray-800 rounded-xl px-3 py-2">
+            <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4 text-accent-400 flex-shrink-0" aria-hidden="true">
+              <path d="M12 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M6 8l1.5 1.5L10 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+            <span className="text-xs text-gray-300 truncate flex-1">{settings.customAudioName}</span>
+            <button
+              type="button"
+              onClick={clearCustomAudio}
+              aria-label="Remove custom sound"
+              className="text-gray-500 hover:text-gray-200 transition-colors flex-shrink-0"
+            >
+              <svg viewBox="0 0 12 12" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
+                <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-500 italic">Default melody</p>
+        )}
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500"
+          >
+            <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
+              <path d="M7 1v8M4 4l3-3 3 3M2 11h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {settings.customAudioName ? 'Change song' : 'Choose from device'}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="audio/*"
+            onChange={handleFileChange}
+            className="hidden"
+            aria-hidden="true"
+          />
+          <button
+            type="button"
+            onClick={preview}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500"
+          >
+            <svg viewBox="0 0 14 14" fill="currentColor" className="w-3 h-3" aria-hidden="true">
+              <path d="M3 2l9 5-9 5V2z" />
+            </svg>
+            Test
+          </button>
+        </div>
+
+        {uploadError && (
+          <p className="text-xs text-red-400">{uploadError}</p>
+        )}
+
+        <p className="text-xs text-gray-600">Max 3 MB · MP3, AAC, WAV, OGG</p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main component ────────────────────────────────────────────────────────
+
 export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, onLogTime }: FocusModeProps) {
   const initial = loadSettings(task.id)
   const [workMins, setWorkMins] = useState(initial.workMins)
@@ -228,17 +484,26 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
   const [running, setRunning] = useState(false)
   const [flash, setFlash] = useState(false)
   const [sessionSecs, setSessionSecs] = useState(0)
+  const [showSound, setShowSound] = useState(false)
+  const [soundSettings, setSoundSettings] = useState<SoundSettings>(loadSoundSettingsFull)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const modeRef = useRef<'work' | 'break'>('work')
   const workSecsRef = useRef(initial.workMins * 60)
   const breakSecsRef = useRef(initial.breakMins * 60)
   const onLogTimeRef = useRef(onLogTime)
+  const soundSettingsRef = useRef(soundSettings)
 
   useEffect(() => { modeRef.current = mode }, [mode])
   useEffect(() => { workSecsRef.current = workMins * 60 }, [workMins])
   useEffect(() => { breakSecsRef.current = breakMins * 60 }, [breakMins])
   useEffect(() => { onLogTimeRef.current = onLogTime }, [onLogTime])
+  useEffect(() => { soundSettingsRef.current = soundSettings }, [soundSettings])
+
+  function handleSoundChange(s: SoundSettings) {
+    setSoundSettings(s)
+    saveSoundSettings(s)
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -260,7 +525,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
             const nextMode = currentMode === 'work' ? 'break' : 'work'
             setMode(nextMode)
             setSecs(nextMode === 'work' ? workSecsRef.current : breakSecsRef.current)
-            playMelody(nextMode === 'work' ? 'break' : 'work')
+            playAlert(currentMode === 'work' ? 'work' : 'break', soundSettingsRef.current)
             notify(
               currentMode === 'work' ? '⏰ Focus session complete!' : '⏰ Break over!',
               currentMode === 'work'
@@ -276,7 +541,6 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
             }
             return 0
           }
-          // Increment session seconds every tick during work mode
           if (modeRef.current === 'work') {
             setSessionSecs(s => s + 1)
           }
@@ -350,7 +614,21 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
         </svg>
       </button>
 
-      <div className="w-full max-w-md flex flex-col items-center gap-7">
+      {/* Sound settings toggle */}
+      <button
+        type="button"
+        onClick={() => setShowSound(v => !v)}
+        aria-label="Sound settings"
+        title="Alert sound settings"
+        className={`absolute top-5 right-14 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 rounded-lg p-1 ${showSound ? 'text-accent-400' : 'text-gray-500 hover:text-gray-200'}`}
+      >
+        <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5" aria-hidden="true">
+          <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </button>
+
+      <div className="w-full max-w-md flex flex-col items-center gap-7 overflow-y-auto max-h-screen py-16">
 
         {/* Mode tabs */}
         <div className="flex items-center gap-1 bg-gray-900 rounded-full p-1">
@@ -392,22 +670,10 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
           </div>
         </div>
 
-        {/* Duration chips — always visible, click to edit when paused */}
+        {/* Duration chips */}
         <div className="flex items-center gap-3">
-          <DurationChip
-            label="Focus"
-            value={workMins}
-            color="accent"
-            disabled={running}
-            onSave={handleWorkSave}
-          />
-          <DurationChip
-            label="Break"
-            value={breakMins}
-            color="emerald"
-            disabled={running}
-            onSave={handleBreakSave}
-          />
+          <DurationChip label="Focus" value={workMins} color="accent" disabled={running} onSave={handleWorkSave} />
+          <DurationChip label="Break" value={breakMins} color="emerald" disabled={running} onSave={handleBreakSave} />
         </div>
 
         {/* Timer controls */}
@@ -443,16 +709,19 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
           <div className="w-9 h-9" aria-hidden="true" />
         </div>
 
-        {/* Hint when running */}
         {running && (
           <p className="text-xs text-gray-600 -mt-3">Pause to edit durations</p>
+        )}
+
+        {/* Sound settings panel */}
+        {showSound && (
+          <SoundSettingsPanel settings={soundSettings} onChange={handleSoundChange} />
         )}
 
         {/* Task card */}
         <div className="w-full bg-gray-900 rounded-2xl p-5 flex flex-col gap-3">
           <div className="flex items-start justify-between gap-2">
             <p className="text-white font-semibold text-lg leading-snug">{task.title}</p>
-            {/* Time tracking badges */}
             <div className="flex flex-col items-end gap-1 flex-shrink-0">
               {sessionSecs > 0 && (
                 <span className="flex items-center gap-1 text-xs bg-accent-600/20 text-accent-300 px-2 py-0.5 rounded-full">
