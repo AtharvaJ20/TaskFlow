@@ -21,6 +21,16 @@ function saveToStorage(tasks: Task[]): void {
 
 const PRIORITY_ORDER: Record<Priority, number> = { high: 0, medium: 1, low: 2 }
 
+function nextCustomDay(from: Date, days: number[]): Date {
+  if (days.length === 0) return addDays(from, 1)
+  const sorted = [...days].sort((a, b) => a - b)
+  const fromDay = from.getDay()
+  const next = sorted.find(d => d > fromDay)
+  return next !== undefined
+    ? addDays(from, next - fromDay)
+    : addDays(from, 7 - fromDay + sorted[0])
+}
+
 // ── Supabase row mapping ─────────────────────────────────────────────────────
 
 interface TaskRow {
@@ -169,6 +179,7 @@ export function useTasks(userId: string | null) {
       tags: input.tags ?? [],
       subtasks: [],
       ...(input.listId ? { listId: input.listId } : {}),
+      ...(input.recurrence ? { recurrence: input.recurrence } : {}),
       createdAt: new Date().toISOString(),
     }
     setTasks(prev => [task, ...prev])
@@ -212,6 +223,7 @@ export function useTasks(userId: string | null) {
         const nextDue =
           frequency === 'daily' ? addDays(base, interval)
           : frequency === 'weekly' ? addWeeks(base, interval)
+          : frequency === 'custom' ? nextCustomDay(base, task.recurrence.customDays ?? [])
           : addMonths(base, interval)
 
         const nextTask: Task = {

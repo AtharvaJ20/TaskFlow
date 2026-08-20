@@ -254,19 +254,25 @@ export default function TaskItem({ task, onToggle, onDelete, onUpdate, onOpenMod
               </span>
             )}
 
-            {task.recurrence && (
-              <span
-                title={`Repeats ${task.recurrence.frequency}`}
-                aria-label={`Repeats ${task.recurrence.frequency}`}
-                className="flex items-center gap-0.5 text-xs text-accent-500 dark:text-accent-400"
-              >
-                <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3" aria-hidden="true">
-                  <path d="M2 7a5 5 0 0 1 9-3M12 7a5 5 0 0 1-9 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                  <path d="M10.5 3.5L11 1l1.5 2.5-2.5.5M3.5 10.5L3 13 1.5 10.5l2.5-.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                {task.recurrence.frequency}
-              </span>
-            )}
+            {task.recurrence && (() => {
+              const { frequency, customDays } = task.recurrence
+              const label = frequency === 'custom' && customDays && customDays.length > 0
+                ? [...customDays].sort((a, b) => a - b).map(d => ['Su','Mo','Tu','We','Th','Fr','Sa'][d]).join(', ')
+                : frequency
+              return (
+                <span
+                  title={`Repeats ${label}`}
+                  aria-label={`Repeats ${label}`}
+                  className="flex items-center gap-0.5 text-xs text-accent-500 dark:text-accent-400"
+                >
+                  <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3" aria-hidden="true">
+                    <path d="M2 7a5 5 0 0 1 9-3M12 7a5 5 0 0 1-9 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                    <path d="M10.5 3.5L11 1l1.5 2.5-2.5.5M3.5 10.5L3 13 1.5 10.5l2.5-.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {label}
+                </span>
+              )
+            })()}
 
             {showList && taskList && (
               <span

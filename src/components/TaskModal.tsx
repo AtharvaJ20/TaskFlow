@@ -30,6 +30,7 @@ export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubt
   const [tagInput, setTagInput] = useState('')
   const [subtaskInput, setSubtaskInput] = useState('')
   const [recurrence, setRecurrence] = useState<RecurrenceFrequency | 'none'>('none')
+  const [customDays, setCustomDays] = useState<number[]>([])
   const [listId, setListId] = useState<string | undefined>(undefined)
 
   const titleRef = useRef<HTMLInputElement>(null)
@@ -46,6 +47,7 @@ export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubt
       setTagInput('')
       setSubtaskInput('')
       setRecurrence(task.recurrence?.frequency ?? 'none')
+      setCustomDays(task.recurrence?.customDays ?? [])
       setListId(task.listId)
     }
   }, [task])
@@ -115,7 +117,16 @@ export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubt
     if (priority !== task.priority) changes.priority = priority
     if (dueDate !== (task.dueDate ?? '')) changes.dueDate = dueDate || undefined
     if (JSON.stringify(tags) !== JSON.stringify(task.tags)) changes.tags = tags
-    const newRecurrence = recurrence !== 'none' ? { frequency: recurrence, interval: 1 } : undefined
+    const newRecurrence =
+      recurrence !== 'none'
+        ? {
+            frequency: recurrence,
+            interval: 1,
+            ...(recurrence === 'custom' && customDays.length > 0
+              ? { customDays: [...customDays].sort((a, b) => a - b) }
+              : {}),
+          }
+        : undefined
     if (JSON.stringify(newRecurrence) !== JSON.stringify(task.recurrence)) changes.recurrence = newRecurrence
     if (listId !== task.listId) changes.listId = listId
 
@@ -266,21 +277,48 @@ export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubt
           </div>
 
           {/* Recurrence */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-20 flex-shrink-0">
-              Repeat
-            </span>
-            <select
-              aria-label="Recurrence frequency"
-              value={recurrence}
-              onChange={e => setRecurrence(e.target.value as RecurrenceFrequency | 'none')}
-              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-accent-500 dark:focus:ring-accent-400 transition"
-            >
-              <option value="none">No repeat</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-20 flex-shrink-0">
+                Repeat
+              </span>
+              <select
+                aria-label="Recurrence frequency"
+                value={recurrence}
+                onChange={e => {
+                  const v = e.target.value as RecurrenceFrequency | 'none'
+                  setRecurrence(v)
+                  if (v !== 'custom') setCustomDays([])
+                }}
+                className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-accent-500 dark:focus:ring-accent-400 transition"
+              >
+                <option value="none">No repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="custom">Custom days</option>
+              </select>
+            </div>
+            {recurrence === 'custom' && (
+              <div className="flex items-center gap-1.5 ml-[92px] flex-wrap">
+                {['Su','Mo','Tu','We','Th','Fr','Sa'].map((label, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-pressed={customDays.includes(i)}
+                    aria-label={['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][i]}
+                    onClick={() => setCustomDays(prev => prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i])}
+                    className={`w-8 h-8 rounded-full text-xs font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
+                      customDays.includes(i)
+                        ? 'bg-accent-600 border-accent-600 text-white'
+                        : 'text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-accent-400'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* List */}

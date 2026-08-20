@@ -6,11 +6,12 @@ export interface TaskList {
   color: string   // hex
   createdAt: string
 }
-export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly'
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'custom'
 
 export interface Recurrence {
   frequency: RecurrenceFrequency
   interval: number
+  customDays?: number[]  // 0=Sun … 6=Sat, only used when frequency === 'custom'
 }
 export type Filter = 'all' | 'active' | 'completed'
 export type SortBy = 'createdAt' | 'dueDate' | 'priority'
@@ -45,4 +46,5 @@ export interface NewTaskInput {
   dueDate?: string
   tags?: string[]
   listId?: string
+  recurrence?: Recurrence
 }

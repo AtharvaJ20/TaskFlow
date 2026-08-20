@@ -1,6 +1,17 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { format, isToday, isTomorrow, addDays } from 'date-fns'
-import type { NewTaskInput, Priority, TaskList } from '../types/task'
+import type { NewTaskInput, Priority, RecurrenceFrequency, TaskList } from '../types/task'
+
+const REPEAT_OPTIONS: { value: RecurrenceFrequency | 'none'; label: string }[] = [
+  { value: 'none',    label: 'No repeat' },
+  { value: 'daily',   label: 'Daily' },
+  { value: 'weekly',  label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'custom',  label: 'Custom' },
+]
+
+const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+const DAY_FULL   = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 interface TaskInputProps {
   onAdd: (input: NewTaskInput) => void
@@ -41,6 +52,9 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
   const [listId, setListId] = useState<string | undefined>(
     activeListId && activeListId !== 'inbox' && activeListId !== null ? activeListId : undefined
   )
+  const [repeatFreq, setRepeatFreq] = useState<RecurrenceFrequency | 'none'>('none')
+  const [customDays, setCustomDays] = useState<number[]>([])
+  const [showRepeatPanel, setShowRepeatPanel] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Keep listId in sync when active list changes externally
@@ -97,9 +111,36 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
     setTags((prev) => prev.filter((t) => t !== tag))
   }
 
+  function repeatChipLabel(): string {
+    if (repeatFreq === 'none') return 'No repeat'
+    if (repeatFreq === 'daily')   return 'Daily'
+    if (repeatFreq === 'weekly')  return 'Weekly'
+    if (repeatFreq === 'monthly') return 'Monthly'
+    if (repeatFreq === 'custom') {
+      if (customDays.length === 0) return 'Custom'
+      return [...customDays].sort((a, b) => a - b).map(d => DAY_LABELS[d]).join(', ')
+    }
+    return 'No repeat'
+  }
+
+  function toggleCustomDay(day: number) {
+    setCustomDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    )
+  }
+
   function handleSubmit() {
     const trimmed = title.trim()
     if (!trimmed) return
+
+    const recurrence =
+      repeatFreq !== 'none'
+        ? {
+            frequency: repeatFreq,
+            interval: 1,
+            ...(repeatFreq === 'custom' && customDays.length > 0 ? { customDays: [...customDays].sort((a, b) => a - b) } : {}),
+          }
+        : undefined
 
     const input: NewTaskInput = {
       title: trimmed,
@@ -107,6 +148,7 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
       ...(dueDate ? { dueDate } : {}),
       ...(tags.length > 0 ? { tags } : {}),
       ...(listId ? { listId } : {}),
+      ...(recurrence ? { recurrence } : {}),
     }
     onAdd(input)
 
@@ -115,6 +157,9 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
     setDueDate('')
     setTags([])
     setTagInput('')
+    setRepeatFreq('none')
+    setCustomDays([])
+    setShowRepeatPanel(false)
     inputRef.current?.focus()
   }
 
@@ -229,6 +274,25 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
           )}
         </div>
 
+        {/* Repeat chip */}
+        <button
+          type="button"
+          onClick={() => setShowRepeatPanel(v => !v)}
+          aria-expanded={showRepeatPanel}
+          aria-label="Set repeat schedule"
+          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
+            repeatFreq !== 'none'
+              ? 'bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-300 border-accent-400'
+              : 'text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+          }`}
+        >
+          <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3 flex-shrink-0" aria-hidden="true">
+            <path d="M2 7a5 5 0 0 1 9-3M12 7a5 5 0 0 1-9 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            <path d="M10.5 3.5L11 1l1.5 2.5-2.5.5M3.5 10.5L3 13 1.5 10.5l2.5-.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {repeatChipLabel()}
+        </button>
+
         {/* List picker */}
         {lists.length > 0 && (
           <select
@@ -245,6 +309,53 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
           </select>
         )}
       </div>
+
+      {/* Repeat options panel */}
+      {showRepeatPanel && (
+        <div className="flex flex-col gap-2 mt-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {REPEAT_OPTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={repeatFreq === value}
+                onClick={() => {
+                  setRepeatFreq(value)
+                  if (value !== 'custom') setCustomDays([])
+                }}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
+                  repeatFreq === value
+                    ? 'bg-accent-600 border-accent-600 text-white'
+                    : 'text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-accent-400'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {repeatFreq === 'custom' && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-gray-400 dark:text-gray-500 mr-1">Days:</span>
+              {DAY_LABELS.map((label, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-pressed={customDays.includes(i)}
+                  aria-label={DAY_FULL[i]}
+                  onClick={() => toggleCustomDay(i)}
+                  className={`w-8 h-8 rounded-full text-xs font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
+                    customDays.includes(i)
+                      ? 'bg-accent-600 border-accent-600 text-white'
+                      : 'text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-accent-400'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Divider */}
       <div className="border-t border-gray-100 dark:border-gray-700 my-3" />
