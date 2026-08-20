@@ -91,9 +91,17 @@ function loadSoundSettingsFull(): SoundSettings {
 
 // ─── Audio playback ────────────────────────────────────────────────────────
 
-function playMelody(type: 'work' | 'break', volume: number, durationSecs: number) {
+async function playMelody(type: 'work' | 'break', volume: number, durationSecs: number, onBlocked?: () => void) {
   try {
     const ctx = new AudioContext()
+    if (ctx.state === 'suspended') {
+      try { await ctx.resume() } catch {}
+    }
+    if (ctx.state === 'suspended') {
+      onBlocked?.()
+      ctx.close()
+      return
+    }
     const master = ctx.createGain()
     master.gain.value = Math.max(0, Math.min(1, volume))
     master.connect(ctx.destination)
@@ -164,22 +172,26 @@ function playMelody(type: 'work' | 'break', volume: number, durationSecs: number
   } catch {}
 }
 
-function playCustomAudio(dataUrl: string, volume: number, durationSecs: number) {
+function playCustomAudio(dataUrl: string, volume: number, durationSecs: number, onBlocked?: () => void) {
   try {
     const audio = new Audio(dataUrl)
     audio.volume = Math.max(0, Math.min(1, volume))
     const p = audio.play()
-    if (p) p.catch(() => {})
+    if (p) {
+      p.catch(err => {
+        if ((err as DOMException).name === 'NotAllowedError') onBlocked?.()
+      })
+    }
     const timer = setTimeout(() => { audio.pause(); audio.currentTime = 0 }, durationSecs * 1000)
     audio.onended = () => clearTimeout(timer)
   } catch {}
 }
 
-function playAlert(type: 'work' | 'break', settings: SoundSettings) {
+function playAlert(type: 'work' | 'break', settings: SoundSettings, onBlocked?: () => void) {
   if (settings.customAudioB64) {
-    playCustomAudio(settings.customAudioB64, settings.volume, settings.durationSecs)
+    playCustomAudio(settings.customAudioB64, settings.volume, settings.durationSecs, onBlocked)
   } else {
-    playMelody(type, settings.volume, settings.durationSecs)
+    playMelody(type, settings.volume, settings.durationSecs, onBlocked)
   }
 }
 
@@ -486,6 +498,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
   const [sessionSecs, setSessionSecs] = useState(0)
   const [showSound, setShowSound] = useState(false)
   const [soundSettings, setSoundSettings] = useState<SoundSettings>(loadSoundSettingsFull)
+  const [tapToPlay, setTapToPlay] = useState<'work' | 'break' | null>(null)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const modeRef = useRef<'work' | 'break'>('work')
@@ -525,7 +538,9 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
             const nextMode = currentMode === 'work' ? 'break' : 'work'
             setMode(nextMode)
             setSecs(nextMode === 'work' ? workSecsRef.current : breakSecsRef.current)
-            playAlert(currentMode === 'work' ? 'work' : 'break', soundSettingsRef.current)
+            playAlert(currentMode === 'work' ? 'work' : 'break', soundSettingsRef.current, () => {
+              setTapToPlay(currentMode === 'work' ? 'work' : 'break')
+            })
             notify(
               currentMode === 'work' ? '⏰ Focus session complete!' : '⏰ Break over!',
               currentMode === 'work'
@@ -600,6 +615,30 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
           style={{ background: mode === 'break' ? 'rgba(99,102,241,0.12)' : 'rgba(16,185,129,0.12)', transition: 'opacity 0.6s' }}
           aria-hidden="true"
         />
+      )}
+
+      {/* Tap-to-play fallback: shown when the browser blocked autoplay (mobile locked screen) */}
+      {tapToPlay && (
+        <div className="absolute top-0 inset-x-0 flex justify-center pt-4 px-4 z-10">
+          <button
+            type="button"
+            onClick={() => {
+              playAlert(tapToPlay, soundSettingsRef.current)
+              setTapToPlay(null)
+            }}
+            className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-gray-950 font-semibold text-sm shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-amber-300"
+            aria-live="assertive"
+          >
+            <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 flex-shrink-0" aria-hidden="true">
+              <path d="M4 8a6 6 0 0 1 12 0v4l1.5 2H2.5L4 12V8z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="M8 16a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            Tap to hear alert
+            <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5 opacity-60 flex-shrink-0" aria-hidden="true">
+              <path d="M12 8L4 4v8l8-4z" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
       )}
 
       {/* Close */}
