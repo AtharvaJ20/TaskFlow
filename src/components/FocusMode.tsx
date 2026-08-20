@@ -52,24 +52,41 @@ function fmtDuration(secs: number): string {
   return rem > 0 ? `${h}h ${rem}m` : `${h}h`
 }
 
-function beep(frequency = 520, duration = 0.8, times = 3) {
+function playMelody(type: 'work' | 'break') {
   try {
     const ctx = new AudioContext()
-    const gap = 0.15
-    for (let i = 0; i < times; i++) {
+
+    // work done: ascending triumph C → E → G → C'
+    // break done: gentle descend G → E → C
+    const notes: { freq: number; start: number; dur: number }[] =
+      type === 'work'
+        ? [
+            { freq: 523, start: 0.0,  dur: 0.18 },
+            { freq: 659, start: 0.2,  dur: 0.18 },
+            { freq: 784, start: 0.4,  dur: 0.18 },
+            { freq: 1047, start: 0.6, dur: 0.5  },
+          ]
+        : [
+            { freq: 784, start: 0.0,  dur: 0.18 },
+            { freq: 659, start: 0.2,  dur: 0.18 },
+            { freq: 523, start: 0.4,  dur: 0.5  },
+          ]
+
+    notes.forEach(({ freq, start, dur }, i) => {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
       osc.connect(gain)
       gain.connect(ctx.destination)
-      osc.frequency.value = frequency
       osc.type = 'sine'
-      const start = ctx.currentTime + i * (duration + gap)
-      gain.gain.setValueAtTime(0.85, start)
-      gain.gain.exponentialRampToValueAtTime(0.001, start + duration)
-      osc.start(start)
-      osc.stop(start + duration)
-      if (i === times - 1) osc.onended = () => ctx.close()
-    }
+      osc.frequency.value = freq
+      const t = ctx.currentTime + start
+      gain.gain.setValueAtTime(0.0, t)
+      gain.gain.linearRampToValueAtTime(0.75, t + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur)
+      osc.start(t)
+      osc.stop(t + dur)
+      if (i === notes.length - 1) osc.onended = () => ctx.close()
+    })
   } catch {}
 }
 
@@ -218,7 +235,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
             const nextMode = currentMode === 'work' ? 'break' : 'work'
             setMode(nextMode)
             setSecs(nextMode === 'work' ? workSecsRef.current : breakSecsRef.current)
-            beep(nextMode === 'work' ? 440 : 660)
+            playMelody(nextMode === 'work' ? 'break' : 'work')
             notify(
               currentMode === 'work' ? '⏰ Focus session complete!' : '⏰ Break over!',
               currentMode === 'work'
