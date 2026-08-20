@@ -410,9 +410,11 @@ export default function App() {
           <button
             type="button"
             onClick={() => setShowSoundSettings(v => !v)}
+            aria-expanded={showSoundSettings}
+            aria-label="Alert Sound settings"
             className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500"
           >
-            <span className="flex items-center gap-2.5">
+            <span className="flex items-center gap-2.5" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 flex-shrink-0" aria-hidden="true">
                 <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
                 <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -778,9 +780,11 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowSoundSettings(v => !v)}
+                aria-expanded={showSoundSettings}
+                aria-label="Alert Sound settings"
                 className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus:outline-none"
               >
-                <span className="flex items-center gap-2.5">
+                <span className="flex items-center gap-2.5" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 flex-shrink-0" aria-hidden="true">
                     <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
                     <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />

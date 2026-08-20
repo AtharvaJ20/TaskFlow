@@ -55,7 +55,7 @@ export default function SoundSettingsPanel({ settings, onChange, saveError }: So
       {/* Volume */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+          <label htmlFor="sound-volume" className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
             <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
               <path d="M3 6H1v4h2l4 3V3L3 6z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
               {volumePct > 0 && <path d="M11 5.5a3.5 3.5 0 0 1 0 5M9 7a1.5 1.5 0 0 1 0 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />}
@@ -65,6 +65,7 @@ export default function SoundSettingsPanel({ settings, onChange, saveError }: So
           <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">{volumePct}%</span>
         </div>
         <input
+          id="sound-volume"
           type="range"
           min={0}
           max={100}
@@ -78,7 +79,7 @@ export default function SoundSettingsPanel({ settings, onChange, saveError }: So
       {/* Duration */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+          <label htmlFor="sound-duration" className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
             <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
               <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.2" />
               <path d="M8 5v3l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -88,6 +89,7 @@ export default function SoundSettingsPanel({ settings, onChange, saveError }: So
           <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">{settings.durationSecs}s</span>
         </div>
         <input
+          id="sound-duration"
           type="range"
           min={1}
           max={30}
@@ -148,6 +150,7 @@ export default function SoundSettingsPanel({ settings, onChange, saveError }: So
           <button
             type="button"
             onClick={() => playAlert('work', settings)}
+            aria-label="Test alert sound"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500"
           >
             <svg viewBox="0 0 14 14" fill="currentColor" className="w-3 h-3" aria-hidden="true">
