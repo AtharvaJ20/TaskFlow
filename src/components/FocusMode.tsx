@@ -61,15 +61,21 @@ function playMelody(type: 'work' | 'break') {
     const notes: { freq: number; start: number; dur: number }[] =
       type === 'work'
         ? [
-            { freq: 523, start: 0.0,  dur: 0.18 },
-            { freq: 659, start: 0.2,  dur: 0.18 },
-            { freq: 784, start: 0.4,  dur: 0.18 },
-            { freq: 1047, start: 0.6, dur: 0.5  },
+            // Triumphant ascending fanfare (~3.5s)
+            { freq: 523,  start: 0.0,  dur: 0.35 },
+            { freq: 659,  start: 0.4,  dur: 0.35 },
+            { freq: 784,  start: 0.8,  dur: 0.35 },
+            { freq: 1047, start: 1.2,  dur: 0.55 },
+            { freq: 784,  start: 1.85, dur: 0.25 },
+            { freq: 1047, start: 2.15, dur: 0.9  },
           ]
         : [
-            { freq: 784, start: 0.0,  dur: 0.18 },
-            { freq: 659, start: 0.2,  dur: 0.18 },
-            { freq: 523, start: 0.4,  dur: 0.5  },
+            // Gentle descending wind-down (~3s)
+            { freq: 880,  start: 0.0,  dur: 0.4  },
+            { freq: 784,  start: 0.5,  dur: 0.4  },
+            { freq: 659,  start: 1.0,  dur: 0.4  },
+            { freq: 523,  start: 1.5,  dur: 0.4  },
+            { freq: 392,  start: 2.0,  dur: 0.8  },
           ]
 
     notes.forEach(({ freq, start, dur }, i) => {
