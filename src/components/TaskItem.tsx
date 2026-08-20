@@ -344,19 +344,26 @@ export default function TaskItem({ task, onToggle, onDelete, onUpdate, onOpenMod
         </div>
       </div>
 
-      {/* Focus button */}
+      {/* Focus button — always visible on mobile, hover-only on desktop */}
       {onFocus && !task.completed && (
         <button
           type="button"
           onClick={() => onFocus(task)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-accent-500 flex-shrink-0 mt-0.5 focus:outline-none focus:opacity-100"
           aria-label={`Focus on: ${task.title}`}
           title="Focus mode"
+          className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+            bg-accent-50 text-accent-600 border border-accent-200
+            dark:bg-accent-900/30 dark:text-accent-400 dark:border-accent-800
+            hover:bg-accent-100 dark:hover:bg-accent-900/50 transition-colors flex-shrink-0
+            sm:opacity-0 sm:group-hover:opacity-100 sm:bg-transparent sm:border-transparent sm:text-gray-400
+            sm:hover:text-accent-500 sm:hover:bg-transparent sm:px-0 sm:py-0 sm:dark:bg-transparent sm:dark:border-transparent
+            focus:outline-none"
         >
-          <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4" aria-hidden="true">
-            <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.3" />
-            <path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
+            <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
+          <span className="sm:hidden">Focus</span>
         </button>
       )}
 
