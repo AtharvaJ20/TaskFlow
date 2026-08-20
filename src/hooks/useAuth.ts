@@ -41,6 +41,8 @@ export function useAuth() {
     const redirectTo = `${window.location.origin}/`
     const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
     if (error) { setAuthError(error.message); throw error }
+    // New account — always show the onboarding tour
+    localStorage.removeItem('taskflow-toured')
     return data.session ? 'done' : 'confirm'
   }
 
