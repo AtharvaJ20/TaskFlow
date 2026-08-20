@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface HelpModalProps {
   onClose: () => void
@@ -7,13 +7,14 @@ interface HelpModalProps {
 interface HelpItem {
   title: string
   description: string
-  tip?: string
+  example?: string
   shortcut?: string
 }
 
 interface Section {
   heading: string
   icon: string
+  color: string
   items: HelpItem[]
 }
 
@@ -21,235 +22,307 @@ const SECTIONS: Section[] = [
   {
     heading: 'Adding Tasks',
     icon: 'M12 5v14M5 12h14',
+    color: 'text-violet-500',
     items: [
       {
         title: 'Create a task',
-        description: 'Type in the top input and press Enter or click Add.',
-        shortcut: 'n — focus the input from anywhere',
+        description: 'Click the task input at the top of the page, type your task, then press Enter or click Add.',
+        example: 'Type "Buy groceries" → press Enter. The task appears instantly in your list.',
+        shortcut: 'n',
       },
       {
-        title: 'Priority',
-        description: 'Choose Low, Medium, or High before adding. Color-coded on each task card.',
+        title: 'Set priority',
+        description: 'Pick Low, Medium, or High in the row below the input before adding. The badge color appears on every task card.',
+        example: '"Submit project report" → set High so it floats visually and sorts to the top when you sort by priority.',
       },
       {
-        title: 'Due date',
-        description: 'Hit Today, Tomorrow, or pick a custom date with the calendar icon. Click × to clear it.',
+        title: 'Set a due date',
+        description: 'Click Today or Tomorrow for quick shortcuts, or the 📅 icon to pick any date. Click × on an existing date to clear it.',
+        example: '"Dentist appointment" → click Tomorrow → date is set without opening a full calendar.',
       },
       {
-        title: 'Repeat',
-        description: 'Click the ↻ chip to schedule a recurring task — Daily, Weekly, Monthly, or Custom days (pick any combination of Sun–Sat).',
+        title: 'Repeat / Recurrence',
+        description: 'Click the ↻ chip to schedule a task that repeats. Choose Daily, Weekly, Monthly, or Custom — which lets you pick specific weekdays.',
+        example: '"Water plants" → ↻ → Custom → toggle Mo, We, Fr. Every time you complete it, the next Monday/Wednesday/Friday occurrence is created automatically.',
       },
       {
-        title: 'Tags',
-        description: 'Type a tag in the bottom row and press Enter or comma to add it. Up to 5 tags per task. Click any tag in the list to filter by it.',
+        title: 'Add tags',
+        description: 'In the tag row at the bottom of the input, type a word and press Enter or comma. Up to 5 tags per task. Tags are clickable to filter.',
+        example: 'Type "work" → Enter → type "urgent" → Enter. Now you can click the "work" tag on any card to see all work tasks.',
       },
       {
-        title: 'List assignment',
-        description: 'Use the list dropdown on the right to place the task into a specific list instead of Inbox.',
+        title: 'Assign to a list',
+        description: 'Use the list dropdown (far right of row 2) to place the task in a specific list instead of Inbox.',
+        example: '"Design mockup" → select "Work" list → the task only appears when you click Work in the sidebar.',
       },
     ],
   },
   {
     heading: 'Managing Tasks',
-    icon: 'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 0-2-2V5a2 2 0 0 1 2-2h11',
+    icon: 'M5 13l4 4L19 7',
+    color: 'text-emerald-500',
     items: [
       {
         title: 'Complete a task',
-        description: 'Click the circle on the left of any task to toggle it done. Recurring tasks automatically spawn the next occurrence.',
+        description: 'Click the circle on the left of any task card to mark it done. It moves to Completed. Click it again to reopen it.',
+        example: '"Buy milk" → click circle → task moves to Completed filter. If it was a daily repeat, tomorrow\'s occurrence is created in Active.',
       },
       {
         title: 'Edit a task',
-        description: 'Click the pencil icon (or anywhere on the task title) to open the detail modal. Edit title, description, priority, due date, tags, list, subtasks, and repeat.',
+        description: 'Click the pencil ✏ icon on a task card (or the task title) to open the detail panel. Edit any field and save.',
+        example: '"Call doctor" was Medium priority — new info makes it urgent. Open modal → change to High → Save.',
       },
       {
         title: 'Delete a task',
-        description: 'Click the trash icon on a task card. An Undo banner appears at the bottom for a few seconds.',
+        description: 'Click the trash 🗑 icon on a task card. An Undo banner appears at the bottom of the screen for a few seconds.',
+        example: 'Delete "Old meeting notes" by mistake → click Undo in the banner → task is restored instantly.',
       },
       {
-        title: 'Subtasks',
-        description: 'Open the task modal and use the Subtasks section to add checklist items. Track progress on each task card.',
+        title: 'Add subtasks',
+        description: 'Open a task modal → use the Subtasks section to add checklist items. Each subtask has its own completion checkbox. Progress shows on the card.',
+        example: '"Plan vacation" → subtasks: "Book flights", "Reserve hotel", "Pack bags". Card shows "1/3" until all are checked.',
       },
       {
-        title: 'Drag to reorder',
-        description: 'Grab the ⠿ handle on the left of any task card and drag it to a new position in the list.',
+        title: 'Reorder tasks',
+        description: 'Grab the ⠿ drag handle that appears on the left edge of a task card and drag it up or down.',
+        example: 'Drag "Team standup" above "Reply to emails" to put your morning tasks first.',
       },
       {
         title: 'Bulk actions',
-        description: 'Click the checkbox on any task to enter selection mode. Select multiple tasks, then use the action bar at the bottom to mark all complete or delete all.',
+        description: 'Click the checkbox icon on any task card to enter multi-select mode. Select as many tasks as you need, then use the bar at the bottom to complete or delete them all.',
+        example: 'Select 5 old completed tasks → Delete All → all 5 are gone in one action instead of five separate deletes.',
       },
     ],
   },
   {
     heading: 'Filtering & Searching',
     icon: 'M3 6h18M7 12h10M11 18h2',
+    color: 'text-blue-500',
     items: [
       {
-        title: 'View filters',
-        description: 'All Tasks, Active, and Completed — in the sidebar. Shows only tasks in the selected state.',
+        title: 'View filters (sidebar)',
+        description: 'Click All Tasks, Active, or Completed in the sidebar to switch the visible set. The count badge shows how many tasks are in each view.',
+        example: 'Click Active to hide everything you\'ve already finished and focus only on what needs doing today.',
       },
       {
         title: 'Search',
-        description: 'The search bar in the toolbar filters tasks by title in real time.',
+        description: 'Type in the search bar in the toolbar. The task list filters in real time as you type — no need to press Enter.',
+        example: 'Type "doctor" → instantly see "Call doctor" and "Doctor follow-up" while everything else hides.',
       },
       {
         title: 'Sort',
-        description: 'Sort by date added, due date, or priority using the toolbar dropdown.',
+        description: 'Use the Sort dropdown in the toolbar to reorder by: Date added, Due date, or Priority.',
+        example: 'Sort by Due Date on a busy week → tasks closest to their deadline rise to the top.',
       },
       {
         title: 'Advanced filters',
-        description: 'Click the filter icon in the toolbar to filter by due date range (Today, This Week, Overdue, No Date) or by priority.',
+        description: 'Click the filter funnel icon in the toolbar to open advanced options: filter by due date window (Today / This Week / Overdue / No Date) or by a specific priority level.',
+        example: 'Filter by Overdue → see only tasks you\'ve missed. Filter by High priority → see only critical items regardless of due date.',
       },
       {
         title: 'Filter by tag',
-        description: 'Click any tag chip on a task card to filter the entire list to that tag. Clear it from the sidebar or toolbar.',
+        description: 'Click any tag chip on a task card to instantly filter the entire list to tasks sharing that tag. Clear it via the × in the toolbar or sidebar.',
+        example: 'Click the "shopping" tag on any card → only tasks tagged "shopping" appear. Click × to return to the full list.',
       },
     ],
   },
   {
     heading: 'Lists',
     icon: 'M4 6h16M4 10h16M4 14h8',
+    color: 'text-orange-500',
     items: [
       {
         title: 'Inbox',
-        description: 'Tasks with no list assigned land in Inbox. It\'s the default home for unorganised tasks.',
+        description: 'Any task you add without choosing a list lands in Inbox. It\'s your catch-all for quick captures.',
+        example: '"Buy milk" and "Pick up parcel" — quick one-offs that don\'t belong to any project. Add them fast, deal with them fast.',
       },
       {
         title: 'Create a list',
-        description: 'Click + next to "Lists" in the sidebar. Pick a color, type a name, and press Enter.',
+        description: 'Click the + button next to "Lists" in the sidebar. Choose a dot color, type a name, and press Enter.',
+        example: 'Create "Work" (blue) for job tasks, "Personal" (green) for errands, "Learning" (purple) for books and courses.',
       },
       {
         title: 'Switch lists',
-        description: 'Click any list name in the sidebar to see only tasks in that list.',
+        description: 'Click any list name in the sidebar to see only tasks assigned to that list. Click "All lists" to see everything.',
+        example: 'Before a team meeting: click "Work" list → you see only work tasks and can stay focused without personal tasks distracting you.',
       },
       {
         title: 'Delete a list',
-        description: 'Hover over a list name and click the × that appears. Tasks in that list move back to Inbox.',
+        description: 'Hover over a list name in the sidebar — a × appears on the right. Click it. Tasks from that list return to Inbox automatically.',
+        example: 'Project "Website Redesign" is done. Delete the list → all its tasks move to Inbox where you can archive or clean them up.',
       },
     ],
   },
   {
-    heading: 'Focus Mode',
-    icon: 'M12 2a7 7 0 1 0 0 14A7 7 0 0 0 12 2zM12 6v6l4 2',
+    heading: 'Focus Mode (Pomodoro)',
+    icon: 'M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
+    color: 'text-red-500',
     items: [
       {
         title: 'Start a session',
-        description: 'Click the ⚡ focus button on any task card to open the Focus Mode timer with that task.',
+        description: 'Click the ⚡ lightning bolt button on any task card. Focus Mode opens with that task loaded and a 25-minute countdown ready.',
+        example: 'Click ⚡ on "Write project proposal" → the timer starts for that specific task. Everything else fades out.',
       },
       {
-        title: 'Pomodoro timer',
-        description: 'Work and Break intervals run back-to-back. Default is 25 min focus + 5 min break.',
+        title: 'Pomodoro rhythm',
+        description: 'The timer runs Focus → Break → Focus → Break in a loop. The phase switches automatically and plays an alert sound.',
+        example: '25 min writing → bell rings → 5 min break → bell rings → back to writing. After 4 rounds, take a longer break.',
       },
       {
         title: 'Customize durations',
-        description: 'Click the Focus or Break chip below the timer (when paused) to type a custom duration in minutes.',
+        description: 'While paused, click the "Focus 25m" or "Break 5m" chip and type a new number of minutes. The timer updates immediately.',
+        example: 'For deep work: change Focus to 50 min and Break to 10 min. For short tasks: 15 min focus, 3 min break.',
       },
       {
         title: 'Alert sound',
-        description: 'An audio alert fires when each interval ends. Configure volume, duration, and upload a custom sound file in the Alert Sound section of the sidebar.',
+        description: 'A sound plays when each phase ends. Configure it in Alert Sound in the sidebar: adjust volume, length, or upload an MP3/WAV/OGG file.',
+        example: 'Upload a soft Tibetan bell as your focus-end sound. Set volume to 30% for open offices.',
       },
       {
-        title: 'Time tracking',
-        description: 'Focused time is logged automatically per task. See totals on each task card and in Statistics.',
+        title: 'Automatic time tracking',
+        description: 'Every second of focus time is logged to the task. The total shows on the task card and in Statistics.',
+        example: 'Three 25-min sessions on "Write report" → card shows "1h 15m total". Statistics shows your productivity graph for the week.',
       },
       {
-        title: 'Complete & exit',
-        description: 'The Mark complete & exit button at the bottom marks the task done and closes the timer in one click.',
-      },
-      {
-        shortcut: 'Space — play / pause the timer',
-        title: 'Keyboard controls',
-        description: 'Space bar toggles play/pause. Escape closes Focus Mode.',
+        title: 'Mark complete & exit',
+        description: 'When the task is done, click Mark complete & exit at the bottom. This completes the task and closes Focus Mode in one click.',
+        example: 'Finished drafting the email during the session → click Mark complete & exit → task is done, timer is gone, you\'re back to the list.',
       },
     ],
   },
   {
     heading: 'Calendar View',
     icon: 'M8 2v4M16 2v4M3 8h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+    color: 'text-cyan-500',
     items: [
       {
-        title: 'Switch to calendar',
-        description: 'Click the calendar icon in the toolbar. Tasks with due dates appear on their due day.',
+        title: 'Switch to Calendar',
+        description: 'Click the calendar grid icon in the toolbar (next to the list icon). Tasks with due dates appear on their due day as colored chips.',
+        example: 'You have 3 tasks due Monday, 1 on Wednesday, 2 on Friday — switch to Calendar to see the week at a glance and spot any overloaded days.',
       },
       {
-        title: 'Open a task',
-        description: 'Click any task chip in the calendar to open its detail modal.',
+        title: 'Open a task from the calendar',
+        description: 'Click any task chip on the calendar to open its detail modal and edit it.',
+        example: 'Click "Team meeting" on Thursday → modal opens → you can reschedule it to Friday by changing the due date.',
       },
     ],
   },
   {
     heading: 'Statistics',
     icon: 'M3 17l5-5 4 4 5-6 4 3',
+    color: 'text-amber-500',
     items: [
       {
-        title: 'View your stats',
-        description: 'Click Statistics in the sidebar to see completion trends, total focus time, tasks by priority, and a weekly activity chart.',
+        title: 'Open Statistics',
+        description: 'Click Statistics in the sidebar. The modal shows completion trends, total focus time logged, tasks by priority, and a daily activity heatmap.',
+        example: 'End of the week: open Statistics → see you completed 14 tasks, logged 4h 20m of focus time, and your most productive day was Tuesday.',
       },
     ],
   },
   {
     heading: 'Import & Export',
-    icon: 'M12 16V4m0 0L8 8m4-4l4 4M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2',
+    icon: 'M8 16H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2m-6 12h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z',
+    color: 'text-teal-500',
     items: [
       {
         title: 'Export tasks',
-        description: 'Click the export icon in the toolbar to download all tasks as JSON (full data) or CSV (spreadsheet-friendly).',
+        description: 'Click the export icon in the toolbar. Choose JSON (full fidelity — all fields, subtasks, recurrence) or CSV (opens in Excel / Google Sheets).',
+        example: 'Before switching laptops: export JSON → copy file to new machine → import it. All 80 tasks restored in 10 seconds.',
       },
       {
         title: 'Import tasks',
-        description: 'Click the import icon and pick a .json or .csv file exported from TaskFlow. Tasks are merged with your existing list.',
+        description: 'Click the import icon in the toolbar and pick a .json or .csv file. Imported tasks are merged with your existing list — nothing is overwritten.',
+        example: 'A teammate shares their task template as a CSV. Import it → their task structure appears in your Inbox ready to use.',
       },
     ],
   },
   {
     heading: 'Customisation',
     icon: 'M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z',
+    color: 'text-pink-500',
     items: [
       {
         title: 'Accent color',
-        description: 'Pick from 6 accent colors in the sidebar — changes buttons, highlights, and interactive elements across the whole app.',
+        description: 'Click any colored circle in the Accent color section of the sidebar. Buttons, highlights, progress bars, and active states all update immediately.',
+        example: 'Switch from the default purple to Rose for a warmer feel, or Emerald if you want a productivity-focused green theme.',
       },
       {
         title: 'Dark / Light mode',
-        description: 'Toggle the sun/moon icon in the top of the sidebar to switch themes.',
+        description: 'Click the sun ☀ or moon 🌙 icon at the top-right of the sidebar to toggle between dark and light themes.',
+        example: 'Working late? Switch to dark mode to reduce eye strain. Presenting on a projector? Switch to light for better contrast.',
       },
       {
-        title: 'Alert sound',
-        description: 'Expand Alert Sound in the sidebar to adjust volume, alert duration, and optionally upload your own audio file (MP3, WAV, OGG).',
+        title: 'Alert sound settings',
+        description: 'Expand "Alert Sound" in the sidebar. Use the volume slider (0–100%), duration slider (how long the sound plays), and optionally upload your own sound file.',
+        example: 'In an open office: volume 20%, short 2-second chime. Working alone at home: volume 70%, 5-second alarm to make sure you notice.',
       },
     ],
   },
   {
     heading: 'Account & Sync',
-    icon: 'M20 12V22H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z',
+    icon: 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z',
+    color: 'text-indigo-500',
     items: [
       {
-        title: 'Sign in',
-        description: 'Create a free account to sync tasks across all your devices. Click Sign in at the bottom of the sidebar.',
+        title: 'Sign in for cloud sync',
+        description: 'Click Sign in at the bottom of the sidebar. Create a free account with your email. Tasks sync instantly across every device you\'re signed in on.',
+        example: 'Add "Buy birthday gift" on your phone during lunch → open TaskFlow on your laptop in the afternoon → the task is already there.',
       },
       {
         title: 'Guest mode',
-        description: 'Use the app without an account. Tasks are stored locally in your browser. Switching devices or clearing browser storage will lose data.',
+        description: 'Use TaskFlow without creating an account. All tasks are saved in your browser\'s local storage. Clearing your browser data or switching devices will lose them.',
+        example: 'Great for trying TaskFlow before committing. If you later create an account, sign in and import your exported JSON to move your tasks to the cloud.',
       },
       {
         title: 'Sign out',
-        description: 'Click the sign-out icon next to your email in the sidebar Account section.',
+        description: 'Click the → sign-out arrow icon next to your email at the bottom of the sidebar.',
+        example: 'Finished using TaskFlow on a shared computer? Sign out so your tasks aren\'t visible to the next person.',
       },
     ],
   },
   {
     heading: 'Keyboard Shortcuts',
-    icon: 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2',
+    icon: 'M4 6h16M4 10h16M4 14h16',
+    color: 'text-gray-500',
     items: [
-      { title: 'n', description: 'Focus the new task input from anywhere on the page.' },
-      { title: 'Enter', description: 'Submit the task when the input is focused.' },
-      { title: 'Escape', description: 'Close any open modal, clear the search bar, or exit Focus Mode.' },
-      { title: 'Space', description: 'Play / pause the timer while Focus Mode is open.' },
+      {
+        title: 'n — New task',
+        description: 'Press n from anywhere on the page to jump the cursor straight into the task input — even if you\'re in the middle of reviewing your list.',
+        example: 'Browsing your task list and think of something new → press n → type → Enter. Never leaves the keyboard.',
+      },
+      {
+        title: 'Enter — Submit',
+        description: 'With the task input focused, press Enter to add the task immediately. No need to click the Add button.',
+        example: '"Pick up dry cleaning" → Enter → "Call bank" → Enter → "Email Jake" → Enter. Three tasks added without touching the mouse.',
+      },
+      {
+        title: 'Escape — Close / Clear',
+        description: 'Closes the open modal or Focus Mode, and clears the search bar if it\'s active.',
+        example: 'Opened the wrong task modal by accident? Press Esc — closed, no click needed. Search bar has text? Esc clears it.',
+      },
+      {
+        title: 'Space — Play / Pause timer',
+        description: 'While Focus Mode is open, Space bar toggles the timer between running and paused.',
+        example: 'Phone rings during a focus session → press Space to pause the countdown → answer the call → press Space again to resume.',
+      },
     ],
   },
 ]
 
+function ExampleBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/30 rounded px-1.5 py-0.5 mr-1.5 flex-shrink-0 leading-none align-middle">
+      <svg viewBox="0 0 10 10" fill="none" className="w-2.5 h-2.5" aria-hidden="true">
+        <path d="M2 5h6M5 2l3 3-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      Try it
+    </span>
+  )
+}
+
 export default function HelpModal({ onClose }: HelpModalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [activeSection, setActiveSection] = useState<string | null>(null)
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -264,6 +337,12 @@ export default function HelpModal({ onClose }: HelpModalProps) {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  function scrollToSection(heading: string) {
+    const el = document.getElementById(`help-${heading.replace(/\s+/g, '-').toLowerCase()}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setActiveSection(heading)
+  }
 
   return (
     <div
@@ -280,16 +359,16 @@ export default function HelpModal({ onClose }: HelpModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-accent-100 dark:bg-accent-900/50 flex items-center justify-center flex-shrink-0">
-              <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-accent-600 dark:text-accent-400" aria-hidden="true">
+            <div className="w-8 h-8 rounded-lg bg-accent-100 dark:bg-accent-900/50 flex items-center justify-center flex-shrink-0">
+              <svg viewBox="0 0 20 20" fill="none" className="w-4.5 h-4.5 text-accent-600 dark:text-accent-400" aria-hidden="true">
                 <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.6" />
                 <path d="M10 7a2 2 0 0 1 1.73 3C11 11 10 11.5 10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                <circle cx="10" cy="15.5" r="0.75" fill="currentColor" />
+                <circle cx="10" cy="15.5" r="0.8" fill="currentColor" />
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Help & Features</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Everything TaskFlow can do</p>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white leading-tight">Help & Features</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Click any section to jump to it</p>
             </div>
           </div>
           <button
@@ -304,33 +383,71 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           </button>
         </div>
 
+        {/* Quick-nav pills */}
+        <div className="flex gap-1.5 px-6 py-2.5 border-b border-gray-100 dark:border-gray-800 flex-shrink-0 flex-wrap">
+          {SECTIONS.map((s) => (
+            <button
+              key={s.heading}
+              type="button"
+              onClick={() => scrollToSection(s.heading)}
+              className={`text-xs px-2.5 py-1 rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
+                activeSection === s.heading
+                  ? 'bg-accent-600 border-accent-600 text-white'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-accent-400 hover:text-accent-600 dark:hover:text-accent-400'
+              }`}
+            >
+              {s.heading}
+            </button>
+          ))}
+        </div>
+
         {/* Scrollable content */}
-        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-7">
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-8">
           {SECTIONS.map((section) => (
-            <section key={section.heading}>
+            <section
+              key={section.heading}
+              id={`help-${section.heading.replace(/\s+/g, '-').toLowerCase()}`}
+            >
+              {/* Section heading */}
               <div className="flex items-center gap-2 mb-3">
-                <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-accent-500 flex-shrink-0" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" className={`w-4 h-4 flex-shrink-0 ${section.color}`} aria-hidden="true">
                   <path d={section.icon} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <h3 className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">
                   {section.heading}
                 </h3>
               </div>
 
-              <div className="space-y-2">
+              {/* Items */}
+              <div className="space-y-3">
                 {section.items.map((item) => (
                   <div
                     key={item.title}
-                    className="flex items-start gap-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 overflow-hidden"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-snug">{item.title}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{item.description}</p>
+                    {/* Title row */}
+                    <div className="flex items-center justify-between gap-2 px-3.5 pt-3 pb-1">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{item.title}</p>
+                      {item.shortcut && (
+                        <kbd className="flex-shrink-0 text-[11px] text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm rounded px-1.5 py-0.5 font-mono">
+                          {item.shortcut}
+                        </kbd>
+                      )}
                     </div>
-                    {item.shortcut && (
-                      <span className="flex-shrink-0 text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md px-2 py-0.5 font-mono whitespace-nowrap mt-0.5">
-                        {item.shortcut}
-                      </span>
+
+                    {/* Description */}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 px-3.5 pb-2.5 leading-relaxed">
+                      {item.description}
+                    </p>
+
+                    {/* Example */}
+                    {item.example && (
+                      <div className="mx-3.5 mb-3 px-3 py-2 rounded-lg bg-accent-50 dark:bg-accent-900/20 border border-accent-100 dark:border-accent-800/40">
+                        <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                          <ExampleBadge />
+                          {item.example}
+                        </p>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -339,7 +456,11 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           ))}
 
           <p className="text-center text-xs text-gray-400 dark:text-gray-600 pb-2">
-            TaskFlow · press <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs font-mono">Esc</kbd> to close
+            Press{' '}
+            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs font-mono">
+              Esc
+            </kbd>{' '}
+            to close
           </p>
         </div>
       </div>
