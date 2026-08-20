@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { format, isToday, isTomorrow, addDays } from 'date-fns'
 import type { NewTaskInput, Priority, TaskList } from '../types/task'
 
 interface TaskInputProps {
@@ -168,13 +169,65 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
           ))}
         </div>
 
-        <input
-          type="date"
-          aria-label="Due date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="text-sm bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 outline-none focus:border-accent-400 dark:focus:border-accent-500 transition-colors"
-        />
+        <div className="flex items-center gap-1.5">
+          {/* Quick shortcuts */}
+          <button
+            type="button"
+            onClick={() => setDueDate(format(new Date(), 'yyyy-MM-dd'))}
+            className={`px-2 py-1 rounded-lg text-xs font-medium border transition-colors ${
+              dueDate && isToday(new Date(dueDate + 'T00:00:00'))
+                ? 'bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-300 border-accent-400'
+                : 'text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            onClick={() => setDueDate(format(addDays(new Date(), 1), 'yyyy-MM-dd'))}
+            className={`px-2 py-1 rounded-lg text-xs font-medium border transition-colors ${
+              dueDate && isTomorrow(new Date(dueDate + 'T00:00:00'))
+                ? 'bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-300 border-accent-400'
+                : 'text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Tomorrow
+          </button>
+          {/* Native date picker hidden behind icon button */}
+          <label className={`relative flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border cursor-pointer transition-colors ${
+            dueDate && !isToday(new Date(dueDate + 'T00:00:00')) && !isTomorrow(new Date(dueDate + 'T00:00:00'))
+              ? 'bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-300 border-accent-400'
+              : 'text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+          }`}>
+            <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span>
+              {dueDate && !isToday(new Date(dueDate + 'T00:00:00')) && !isTomorrow(new Date(dueDate + 'T00:00:00'))
+                ? format(new Date(dueDate + 'T00:00:00'), 'MMM d')
+                : 'Pick'}
+            </span>
+            <input
+              type="date"
+              aria-label="Due date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full"
+            />
+          </label>
+          {dueDate && (
+            <button
+              type="button"
+              onClick={() => setDueDate('')}
+              aria-label="Clear due date"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-base leading-none"
+            >
+              ×
+            </button>
+          )}
+        </div>
 
         {/* List picker */}
         {lists.length > 0 && (
