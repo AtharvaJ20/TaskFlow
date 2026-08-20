@@ -52,20 +52,24 @@ function fmtDuration(secs: number): string {
   return rem > 0 ? `${h}h ${rem}m` : `${h}h`
 }
 
-function beep(frequency = 520, duration = 0.4) {
+function beep(frequency = 520, duration = 0.8, times = 3) {
   try {
     const ctx = new AudioContext()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.frequency.value = frequency
-    osc.type = 'sine'
-    gain.gain.setValueAtTime(0.4, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
-    osc.start(ctx.currentTime)
-    osc.stop(ctx.currentTime + duration)
-    osc.onended = () => ctx.close()
+    const gap = 0.15
+    for (let i = 0; i < times; i++) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.frequency.value = frequency
+      osc.type = 'sine'
+      const start = ctx.currentTime + i * (duration + gap)
+      gain.gain.setValueAtTime(0.85, start)
+      gain.gain.exponentialRampToValueAtTime(0.001, start + duration)
+      osc.start(start)
+      osc.stop(start + duration)
+      if (i === times - 1) osc.onended = () => ctx.close()
+    }
   } catch {}
 }
 
