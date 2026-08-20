@@ -32,7 +32,7 @@ const FILTER_TABS: { value: Filter; label: string; icon: string }[] = [
 ]
 
 export default function App() {
-  const { user, mode, authError, signIn, signUp, signOut, continueAsGuest, clearAuthError } = useAuth()
+  const { user, mode, authError, signIn, signUp, signOut, continueAsGuest } = useAuth()
   const userId = user?.id ?? null
 
   const { tasks, tasksLoading, addTask, updateTask, toggleTask, deleteTask, lastDeleted, undoDelete, clearUndo, addSubtask, toggleSubtask, deleteSubtask, reorderTasks, importTasks, logTime } = useTasks(mode === 'user' ? userId : null)
