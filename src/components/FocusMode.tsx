@@ -264,7 +264,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-gray-950/95 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-gray-950/95 backdrop-blur-sm overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-label="Focus mode"
@@ -313,7 +313,8 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
         </svg>
       </button>
 
-      <div className="w-full max-w-md flex flex-col items-center gap-7 overflow-y-auto max-h-screen py-16">
+      <div className="min-h-full flex items-center justify-center p-4">
+      <div className="w-full max-w-md flex flex-col items-center gap-7 py-12">
 
         {/* Mode tabs */}
         <div className="flex items-center gap-1 bg-gray-900 rounded-full p-1">
@@ -458,6 +459,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
             </button>
           )}
         </div>
+      </div>
       </div>
     </div>
   )
