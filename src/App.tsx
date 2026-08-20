@@ -208,8 +208,11 @@ export default function App() {
           </button>
         </div>
 
+        {/* Scrollable sidebar body */}
+        <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+
         {/* Progress stats */}
-        <div className="px-6 py-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+        <div className="px-6 py-6 border-b border-gray-100 dark:border-gray-800">
           <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Progress</p>
           <div className="flex items-end justify-between mb-2">
             <span className="text-3xl font-bold text-gray-900 dark:text-white">{pct}%</span>
@@ -232,7 +235,7 @@ export default function App() {
         </div>
 
         {/* Filter nav */}
-        <nav className="px-3 py-4 flex-1" aria-label="Task filters">
+        <nav className="px-3 py-4" aria-label="Task filters">
           <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-2">View</p>
           {FILTER_TABS.map(({ value, label, icon }) => {
             const isActive = filter === value
@@ -500,7 +503,7 @@ export default function App() {
 
         {/* Active tag filter */}
         {tagFilter !== null && (
-          <div className="px-4 pb-5 flex-shrink-0">
+          <div className="px-4 pb-5">
             <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">Tag filter</p>
             <span className="inline-flex items-center gap-1.5 bg-accent-100 dark:bg-accent-900/40 text-accent-700 dark:text-accent-300 text-xs font-medium px-3 py-1.5 rounded-full">
               #{tagFilter}
@@ -517,6 +520,8 @@ export default function App() {
             </span>
           </div>
         )}
+
+        </div>{/* end scrollable sidebar body */}
       </aside>
 
       {/* ── Page content (offset by sidebar on desktop) ──────────── */}
