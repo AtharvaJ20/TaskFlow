@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { Task } from '../types/task'
-import {
-  type SoundSettings,
-  loadSoundSettingsFull,
-  saveSoundSettings,
-  playAlert,
-} from '../utils/soundSettings'
+import { loadSoundSettingsFull, playAlert } from '../utils/soundSettings'
 
 interface FocusModeProps {
   task: Task
@@ -158,192 +153,6 @@ function DurationChip({
   )
 }
 
-// ─── Sound settings panel ──────────────────────────────────────────────────
-
-function SoundSettingsPanel({
-  settings,
-  onChange,
-  saveError,
-}: {
-  settings: SoundSettings
-  onChange: (s: SoundSettings) => void
-  saveError: string | null
-}) {
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    onChange({ ...settings, volume: Number(e.target.value) / 100 })
-  }
-
-  function handleDurationChange(e: React.ChangeEvent<HTMLInputElement>) {
-    onChange({ ...settings, durationSecs: Number(e.target.value) })
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setUploadError(null)
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('audio/')) {
-      setUploadError('Please choose an audio file (MP3, AAC, WAV, OGG).')
-      e.target.value = ''
-      return
-    }
-    if (file.size > 3 * 1024 * 1024) {
-      setUploadError('File too large (max 3 MB). Choose a shorter clip.')
-      e.target.value = ''
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = ev => {
-      const result = ev.target?.result as string
-      onChange({ ...settings, customAudioB64: result, customAudioName: file.name })
-    }
-    reader.onerror = () => setUploadError('Could not read file.')
-    reader.readAsDataURL(file)
-    e.target.value = ''
-  }
-
-  function clearCustomAudio() {
-    onChange({ ...settings, customAudioB64: null, customAudioName: null })
-  }
-
-  function preview() {
-    playAlert('work', settings)
-  }
-
-  const volumePct = Math.round(settings.volume * 100)
-
-  return (
-    <div className="w-full bg-gray-900 rounded-2xl p-4 flex flex-col gap-4">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Alert Sound</p>
-
-      {/* Volume */}
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <label className="text-xs text-gray-400 flex items-center gap-1.5">
-            <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
-              <path d="M3 6H1v4h2l4 3V3L3 6z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-              {volumePct > 0 && <path d="M11 5.5a3.5 3.5 0 0 1 0 5M9 7a1.5 1.5 0 0 1 0 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />}
-            </svg>
-            Volume
-          </label>
-          <span className="text-xs text-gray-300 tabular-nums">{volumePct}%</span>
-        </div>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={volumePct}
-          onChange={handleVolumeChange}
-          className="w-full accent-accent-500 h-1.5 rounded-full cursor-pointer"
-          aria-label="Alert volume"
-        />
-      </div>
-
-      {/* Duration */}
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <label className="text-xs text-gray-400 flex items-center gap-1.5">
-            <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
-              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.2" />
-              <path d="M8 5v3l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-            </svg>
-            Alert duration
-          </label>
-          <span className="text-xs text-gray-300 tabular-nums">{settings.durationSecs}s</span>
-        </div>
-        <input
-          type="range"
-          min={1}
-          max={30}
-          value={settings.durationSecs}
-          onChange={handleDurationChange}
-          className="w-full accent-accent-500 h-1.5 rounded-full cursor-pointer"
-          aria-label="Alert duration in seconds"
-        />
-        <div className="flex justify-between text-xs text-gray-600">
-          <span>1s</span>
-          <span>30s</span>
-        </div>
-      </div>
-
-      {/* Custom audio */}
-      <div className="flex flex-col gap-2">
-        <p className="text-xs text-gray-400 flex items-center gap-1.5">
-          <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
-            <path d="M13 6l-5-4-5 4v8h4v-3h2v3h4V6z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-            <circle cx="8" cy="9" r="1.5" stroke="currentColor" strokeWidth="1.2" />
-          </svg>
-          Alert sound
-        </p>
-
-        {settings.customAudioName ? (
-          <div className="flex items-center gap-2 bg-gray-800 rounded-xl px-3 py-2">
-            <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4 text-accent-400 flex-shrink-0" aria-hidden="true">
-              <path d="M12 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z" stroke="currentColor" strokeWidth="1.2" />
-              <path d="M6 8l1.5 1.5L10 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-            </svg>
-            <span className="text-xs text-gray-300 truncate flex-1">{settings.customAudioName}</span>
-            <button
-              type="button"
-              onClick={clearCustomAudio}
-              aria-label="Remove custom sound"
-              className="text-gray-500 hover:text-gray-200 transition-colors flex-shrink-0"
-            >
-              <svg viewBox="0 0 12 12" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
-                <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-        ) : (
-          <p className="text-xs text-gray-500 italic">Default melody</p>
-        )}
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500"
-          >
-            <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5" aria-hidden="true">
-              <path d="M7 1v8M4 4l3-3 3 3M2 11h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {settings.customAudioName ? 'Change song' : 'Choose from device'}
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="audio/*"
-            onChange={handleFileChange}
-            className="hidden"
-            aria-hidden="true"
-          />
-          <button
-            type="button"
-            onClick={preview}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500"
-          >
-            <svg viewBox="0 0 14 14" fill="currentColor" className="w-3 h-3" aria-hidden="true">
-              <path d="M3 2l9 5-9 5V2z" />
-            </svg>
-            Test
-          </button>
-        </div>
-
-        {uploadError && (
-          <p className="text-xs text-red-400" role="alert">{uploadError}</p>
-        )}
-        {saveError && !uploadError && (
-          <p className="text-xs text-amber-400" role="alert">{saveError}</p>
-        )}
-
-        <p className="text-xs text-gray-600">Max 3 MB · MP3, AAC, WAV, OGG</p>
-      </div>
-    </div>
-  )
-}
-
 // ─── Main component ────────────────────────────────────────────────────────
 
 export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, onLogTime }: FocusModeProps) {
@@ -356,31 +165,18 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
   const [running, setRunning] = useState(false)
   const [flash, setFlash] = useState(false)
   const [sessionSecs, setSessionSecs] = useState(0)
-  const [showSound, setShowSound] = useState(false)
-  const [soundSettings, setSoundSettings] = useState<SoundSettings>(loadSoundSettingsFull)
   const [tapToPlay, setTapToPlay] = useState<'work' | 'break' | null>(null)
-  const [soundSaveError, setSoundSaveError] = useState<string | null>(null)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const modeRef = useRef<'work' | 'break'>('work')
   const workSecsRef = useRef(initial.workMins * 60)
   const breakSecsRef = useRef(initial.breakMins * 60)
   const onLogTimeRef = useRef(onLogTime)
-  const soundSettingsRef = useRef(soundSettings)
 
   useEffect(() => { modeRef.current = mode }, [mode])
   useEffect(() => { workSecsRef.current = workMins * 60 }, [workMins])
   useEffect(() => { breakSecsRef.current = breakMins * 60 }, [breakMins])
   useEffect(() => { onLogTimeRef.current = onLogTime }, [onLogTime])
-  useEffect(() => { soundSettingsRef.current = soundSettings }, [soundSettings])
-
-  function handleSoundChange(s: SoundSettings) {
-    setSoundSettings(s)
-    setSoundSaveError(null)
-    if (!saveSoundSettings(s)) {
-      setSoundSaveError("Couldn't save — device storage is full.")
-    }
-  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -402,7 +198,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
             const nextMode = currentMode === 'work' ? 'break' : 'work'
             setMode(nextMode)
             setSecs(nextMode === 'work' ? workSecsRef.current : breakSecsRef.current)
-            playAlert(currentMode === 'work' ? 'work' : 'break', soundSettingsRef.current, () => {
+            playAlert(currentMode === 'work' ? 'work' : 'break', loadSoundSettingsFull(), () => {
               setTapToPlay(currentMode === 'work' ? 'work' : 'break')
             })
             notify(
@@ -487,7 +283,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
           <button
             type="button"
             onClick={() => {
-              playAlert(tapToPlay, soundSettingsRef.current)
+              playAlert(tapToPlay, loadSoundSettingsFull())
               setTapToPlay(null)
             }}
             className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-gray-950 font-semibold text-sm shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-amber-300"
@@ -514,20 +310,6 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
       >
         <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5" aria-hidden="true">
           <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-        </svg>
-      </button>
-
-      {/* Sound settings toggle */}
-      <button
-        type="button"
-        onClick={() => setShowSound(v => !v)}
-        aria-label="Sound settings"
-        title="Alert sound settings"
-        className={`absolute top-5 right-14 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 rounded-lg p-1 ${showSound ? 'text-accent-400' : 'text-gray-500 hover:text-gray-200'}`}
-      >
-        <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5" aria-hidden="true">
-          <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </button>
 
@@ -614,11 +396,6 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
 
         {running && (
           <p className="text-xs text-gray-600 -mt-3">Pause to edit durations</p>
-        )}
-
-        {/* Sound settings panel */}
-        {showSound && (
-          <SoundSettingsPanel settings={soundSettings} onChange={handleSoundChange} saveError={soundSaveError} />
         )}
 
         {/* Task card */}

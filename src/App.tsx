@@ -23,6 +23,8 @@ import type { AccentColor } from './hooks/useAccentColor'
 import { useLists, LIST_COLORS } from './hooks/useLists'
 import { exportJSON, exportCSV } from './utils/exportTasks'
 import { importFromJSON, importFromCSV } from './utils/importTasks'
+import SoundSettingsPanel from './components/SoundSettingsPanel'
+import { type SoundSettings, loadSoundSettingsFull, saveSoundSettings } from './utils/soundSettings'
 import type { Task, Filter } from './types/task'
 
 const FILTER_TABS: { value: Filter; label: string; icon: string }[] = [
@@ -51,7 +53,18 @@ export default function App() {
   const focusTask = useMemo(() => tasks.find(t => t.id === focusTaskId) ?? null, [tasks, focusTaskId])
   const [showStats, setShowStats] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showSoundSettings, setShowSoundSettings] = useState(false)
+  const [soundSettings, setSoundSettings] = useState<SoundSettings>(loadSoundSettingsFull)
+  const [soundSaveError, setSoundSaveError] = useState<string | null>(null)
   const { step: tourStep, next: tourNext, dismiss: tourDismiss } = useTour()
+
+  function handleSoundChange(s: SoundSettings) {
+    setSoundSettings(s)
+    setSoundSaveError(null)
+    if (!saveSoundSettings(s)) {
+      setSoundSaveError("Couldn't save — device storage is full.")
+    }
+  }
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -392,6 +405,40 @@ export default function App() {
           </div>
         </div>
 
+        {/* Alert sound settings */}
+        <div className="px-3 pb-2 border-t border-gray-100 dark:border-gray-800 pt-3">
+          <button
+            type="button"
+            onClick={() => setShowSoundSettings(v => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500"
+          >
+            <span className="flex items-center gap-2.5">
+              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 flex-shrink-0" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+                <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Alert Sound
+            </span>
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              className={`w-3.5 h-3.5 transition-transform ${showSoundSettings ? 'rotate-180' : ''}`}
+              aria-hidden="true"
+            >
+              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {showSoundSettings && (
+            <div className="px-3 pt-2 pb-1">
+              <SoundSettingsPanel
+                settings={soundSettings}
+                onChange={handleSoundChange}
+                saveError={soundSaveError}
+              />
+            </div>
+          )}
+        </div>
+
         {/* Stats button */}
         <div className="px-3 pb-2">
           <button
@@ -724,6 +771,40 @@ export default function App() {
                   <button key={key} type="button" onClick={() => setAccent(key)} aria-label={`Set accent color to ${opt.label}`} aria-pressed={accent === key} style={{ backgroundColor: opt.hex }} className={`w-6 h-6 rounded-full transition-transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 ${accent === key ? 'scale-125 ring-2 ring-offset-2 ring-gray-400' : 'hover:scale-110'}`} title={opt.label} />
                 ))}
               </div>
+            </div>
+
+            {/* Alert sound settings */}
+            <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setShowSoundSettings(v => !v)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus:outline-none"
+              >
+                <span className="flex items-center gap-2.5">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 flex-shrink-0" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+                    <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  Alert Sound
+                </span>
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  className={`w-3.5 h-3.5 transition-transform ${showSoundSettings ? 'rotate-180' : ''}`}
+                  aria-hidden="true"
+                >
+                  <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {showSoundSettings && (
+                <div className="px-3 pt-2 pb-1">
+                  <SoundSettingsPanel
+                    settings={soundSettings}
+                    onChange={handleSoundChange}
+                    saveError={soundSaveError}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Stats */}
