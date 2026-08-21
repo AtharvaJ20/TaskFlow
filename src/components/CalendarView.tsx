@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, isToday, parseISO } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, isToday, isFuture, parseISO, startOfDay } from 'date-fns'
 import type { Task } from '../types/task'
 
 interface CalendarViewProps {
@@ -25,7 +25,13 @@ export default function CalendarView({ tasks, onOpenModal }: CalendarViewProps) 
   }
 
   function tasksForDay(day: Date) {
-    return tasks.filter(t => t.dueDate && isSameDay(parseISO(t.dueDate), day))
+    const dayIsInFuture = isFuture(startOfDay(day)) && !isToday(day)
+    return tasks.filter(t => {
+      if (!t.dueDate || !isSameDay(parseISO(t.dueDate), day)) return false
+      // Hide daily recurring tasks from future dates — they'd clutter every day
+      if (dayIsInFuture && t.recurrence?.frequency === 'daily') return false
+      return true
+    })
   }
 
   return (
@@ -72,6 +78,7 @@ export default function CalendarView({ tasks, onOpenModal }: CalendarViewProps) 
           const dayTasks = tasksForDay(day)
           const isCurrentMonth = isSameMonth(day, current)
           const isCurrentDay = isToday(day)
+          const dayIsInFuture = isFuture(startOfDay(day)) && !isToday(day)
           return (
             <div
               key={i}
@@ -100,7 +107,9 @@ export default function CalendarView({ tasks, onOpenModal }: CalendarViewProps) 
                     className={`w-full text-left text-xs px-1.5 py-0.5 rounded truncate focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors ${
                       task.completed
                         ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 line-through'
-                        : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800/60'
+                        : dayIsInFuture
+                          ? 'border border-dashed border-indigo-300 dark:border-indigo-700 text-indigo-400 dark:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30'
+                          : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800/60'
                     }`}
                   >
                     {task.title}
