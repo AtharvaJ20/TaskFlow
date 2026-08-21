@@ -110,7 +110,10 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
     return linked.filter(t => t.completed && t.completedAt && new Date(t.completedAt) >= cutoff).length
   }, [linked])
 
-  const dailyVelocity = last7done / 7
+  // Divide by days the goal has been active (capped at 7) so a new goal isn't
+  // penalised for days that haven't happened yet.
+  const goalAgeDays = Math.max(1, Math.min(7, differenceInDays(new Date(), parseISO(goal.createdAt)) + 1))
+  const dailyVelocity = last7done / goalAgeDays
   const remaining = expectedTotal - done
   const dailyNeeded = daysLeft > 0 ? remaining / daysLeft : Infinity
 
