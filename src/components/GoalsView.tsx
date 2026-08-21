@@ -99,7 +99,6 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
   const done = linked.filter(t => t.completed).length
   // Expected total based on goal duration × recurrence, not raw task count
   const expectedTotal = useMemo(() => computeExpectedTotal(goal, linked), [goal, linked])
-  const total = linked.length
   const pct = expectedTotal > 0 ? Math.min(100, Math.round((done / expectedTotal) * 100)) : 0
 
   const daysLeft = differenceInDays(parseISO(goal.deadline), new Date())
