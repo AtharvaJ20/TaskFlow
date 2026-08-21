@@ -819,12 +819,12 @@ export default function App() {
             <nav className="px-3 py-3 border-b border-gray-100 dark:border-gray-800">
               <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-1.5">View</p>
               {FILTER_TABS.map(({ value, label, icon }) => {
-                const isActive = filter === value
+                const isActive = filter === value && view !== 'goals'
                 return (
                   <button
                     key={value}
                     type="button"
-                    onClick={() => { setFilter(value); setMobileMenuOpen(false) }}
+                    onClick={() => { setFilter(value); if (view === 'goals') setView('list'); setMobileMenuOpen(false) }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium mb-0.5 transition-colors focus:outline-none ${
                       isActive
                         ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300'
@@ -860,7 +860,7 @@ export default function App() {
                 <button
                   key={String(item.id)}
                   type="button"
-                  onClick={() => { setActiveListId(item.id); setMobileMenuOpen(false) }}
+                  onClick={() => { setActiveListId(item.id); if (view === 'goals') setView('list'); setMobileMenuOpen(false) }}
                   className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none ${activeListId === item.id ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                 >
                   <span className="flex items-center gap-2">
@@ -872,7 +872,7 @@ export default function App() {
               ))}
               {lists.map(list => (
                 <div key={list.id} className="flex items-center group/list">
-                  <button type="button" onClick={() => { setActiveListId(list.id); setMobileMenuOpen(false) }} className={`flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none ${activeListId === list.id ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                  <button type="button" onClick={() => { setActiveListId(list.id); if (view === 'goals') setView('list'); setMobileMenuOpen(false) }} className={`flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none ${activeListId === list.id && view !== 'goals' ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
                     <span className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: list.color }} aria-hidden="true" />
                       {list.name}
@@ -894,6 +894,66 @@ export default function App() {
                   <input autoFocus type="text" placeholder="List name…" value={newListName} onChange={e => setNewListName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleCreateList(); if (e.key === 'Escape') { setCreatingList(false); setNewListName('') } }} onBlur={() => { if (!newListName.trim()) setCreatingList(false) }} className="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-accent-500 text-gray-800 dark:text-gray-200 placeholder-gray-400" />
                 </div>
               )}
+            </div>
+
+            {/* Goals */}
+            <div className="px-3 py-3 border-t border-gray-100 dark:border-gray-800">
+              <div className="flex items-center justify-between px-3 mb-1">
+                <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Goals</p>
+                <button
+                  type="button"
+                  onClick={() => { setEditingGoal(null); setShowGoalModal(true); setMobileMenuOpen(false) }}
+                  aria-label="Create new goal"
+                  className="text-gray-400 hover:text-accent-500 transition-colors focus:outline-none rounded"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4" aria-hidden="true">
+                    <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setView('goals'); setMobileMenuOpen(false) }}
+                className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none ${
+                  view === 'goals'
+                    ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true">
+                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3" />
+                    <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+                    <circle cx="8" cy="8" r="0.8" fill="currentColor" />
+                  </svg>
+                  All goals
+                </span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{goals.length}</span>
+              </button>
+              {goals.map(goal => {
+                const total = tasks.filter(t => t.goalId === goal.id).length
+                const done = tasks.filter(t => t.goalId === goal.id && t.completed).length
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0
+                return (
+                  <button
+                    key={goal.id}
+                    type="button"
+                    onClick={() => { setView('goals'); setMobileMenuOpen(false) }}
+                    className="w-full flex flex-col px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="flex items-center gap-2 truncate">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: goal.color }} aria-hidden="true" />
+                        <span className="truncate">{goal.title}</span>
+                      </span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 ml-2 flex-shrink-0">{pct}%</span>
+                    </div>
+                    <div className="mt-1 ml-4 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: goal.color }} />
+                    </div>
+                  </button>
+                )
+              })}
             </div>
 
             {/* Accent color */}
