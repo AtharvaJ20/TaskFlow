@@ -43,13 +43,10 @@ export function useFilters(): UseFiltersReturn {
 
   const applyFilters = useCallback(
     (tasks: Task[]): Task[] => {
-      // 1. Completion status + hide future-dated tasks until their due date
-      const todayEnd = endOfDay(new Date())
+      // 1. Completion status
       let result = tasks.filter((task) => {
-        if (filter === 'completed') return task.completed
-        // Hide tasks scheduled for a future date (they appear on their due date)
-        if (task.dueDate && parseISO(task.dueDate) > todayEnd) return false
         if (filter === 'active') return !task.completed
+        if (filter === 'completed') return task.completed
         return true
       })
 

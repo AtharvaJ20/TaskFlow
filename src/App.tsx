@@ -23,6 +23,7 @@ import type { AccentColor } from './hooks/useAccentColor'
 import { useLists, LIST_COLORS } from './hooks/useLists'
 import { useGoals } from './hooks/useGoals'
 import { useGoalProgress } from './hooks/useGoalProgress'
+import { getGoalPct as computeGoalPct } from './utils/goalProgress'
 import GoalModal from './components/GoalModal'
 import GoalsView from './components/GoalsView'
 import LogProgressModal from './components/LogProgressModal'
@@ -170,21 +171,7 @@ export default function App() {
   const filterLabel = view === 'goals' ? 'Goals' : (FILTER_TABS.find(t => t.value === filter)?.label ?? 'Tasks')
 
   function getGoalPct(goal: Goal): number {
-    if (goal.goalType === 'metric') {
-      const goalEntries = entries.filter((e: GoalProgressEntry) => e.goalId === goal.id)
-      if (goalEntries.length === 0) return 0
-      const latest = goalEntries.reduce((a: GoalProgressEntry, b: GoalProgressEntry) => a.loggedAt > b.loggedAt ? a : b)
-      const start = goal.startValue ?? 0
-      const target = goal.targetValue ?? 100
-      const range = target - start
-      if (range === 0) return 0
-      return Math.max(0, Math.min(100, Math.round(((latest.value - start) / range) * 100)))
-    }
-    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
-    const linked = tasks.filter(t => t.goalId === goal.id)
-    const done = linked.filter(t => t.completed).length
-    const total = linked.filter(t => !t.dueDate || new Date(t.dueDate) <= todayEnd).length
-    return total > 0 ? Math.round((done / total) * 100) : 0
+    return computeGoalPct(goal, tasks, entries)
   }
 
   // Show auth screen when not yet signed in and not using guest mode

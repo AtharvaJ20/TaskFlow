@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { differenceInDays, endOfDay, format, parseISO } from 'date-fns'
+import { differenceInDays, format, parseISO } from 'date-fns'
 import type { Goal, Task, GoalProgressEntry } from '../types/task'
+import { computeExpectedTotal } from '../utils/goalProgress'
 
 interface GoalsViewProps {
   goals: Goal[]
@@ -94,12 +95,12 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
 }) {
   const [showTasks, setShowTasks] = useState(false)
 
-  const todayEnd = endOfDay(new Date())
   const linked = useMemo(() => tasks.filter(t => t.goalId === goal.id), [tasks, goal.id])
   const done = linked.filter(t => t.completed).length
-  // Exclude future-dated tasks from denominator — they haven't been "due" yet
-  const total = linked.filter(t => !t.dueDate || parseISO(t.dueDate) <= todayEnd).length
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0
+  // Expected total based on goal duration × recurrence, not raw task count
+  const expectedTotal = useMemo(() => computeExpectedTotal(goal, linked), [goal, linked])
+  const total = linked.length
+  const pct = expectedTotal > 0 ? Math.min(100, Math.round((done / expectedTotal) * 100)) : 0
 
   const daysLeft = differenceInDays(parseISO(goal.deadline), new Date())
 
@@ -110,12 +111,12 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
   }, [linked])
 
   const dailyVelocity = last7done / 7
-  const remaining = total - done
+  const remaining = expectedTotal - done
   const dailyNeeded = daysLeft > 0 ? remaining / daysLeft : Infinity
 
   const status: GoalStatus =
-    total === 0 ? 'no-data'
-    : done === total ? 'complete'
+    expectedTotal === 0 ? 'no-data'
+    : done >= expectedTotal ? 'complete'
     : daysLeft < 0 ? 'overdue'
     : dailyVelocity >= dailyNeeded ? 'on-track'
     : 'at-risk'
@@ -148,8 +149,8 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
 
         <div className="grid grid-cols-3 gap-3 py-3 border-y border-gray-100 dark:border-gray-700 mb-3">
           <div className="text-center">
-            <p className="text-lg font-bold text-gray-900 dark:text-white">{done}/{total}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Tasks done</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{done}/{expectedTotal}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Done / expected</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-gray-900 dark:text-white">
