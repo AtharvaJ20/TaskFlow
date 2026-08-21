@@ -332,23 +332,42 @@ export default function App() {
           </button>
 
           {/* Inbox */}
-          <button
-            type="button"
-            onClick={() => { setActiveListId('inbox'); if (view === 'goals') setView('list') }}
-            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
-              activeListId === 'inbox'
-                ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true">
-                <path d="M2 10h4l1.5 2h5L14 10V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v6z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-              </svg>
-              Inbox
-            </span>
-            <span className="text-xs text-gray-400 dark:text-gray-500">{listTaskCounts.inbox}</span>
-          </button>
+          <div className="flex items-center group/list">
+            <button
+              type="button"
+              onClick={() => { setActiveListId('inbox'); if (view === 'goals') setView('list'); setClearingListId(null) }}
+              className={`flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
+                activeListId === 'inbox'
+                  ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true">
+                  <path d="M2 10h4l1.5 2h5L14 10V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v6z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+                </svg>
+                Inbox
+              </span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">{listTaskCounts.inbox}</span>
+            </button>
+            {clearingListId === 'inbox' ? (
+              <div className="flex items-center gap-1 pr-1 flex-shrink-0">
+                <span className="text-xs text-red-400">Clear?</span>
+                <button type="button" onClick={() => { clearList('inbox'); setClearingListId(null) }}
+                  className="text-xs text-red-400 hover:text-red-600 font-medium focus:outline-none">Yes</button>
+                <button type="button" onClick={() => setClearingListId(null)}
+                  className="text-xs text-gray-400 hover:text-gray-600 focus:outline-none">No</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setClearingListId('inbox')}
+                aria-label="Clear inbox"
+                className="opacity-0 group-hover/list:opacity-100 transition-opacity text-gray-300 hover:text-orange-400 dark:text-gray-600 dark:hover:text-orange-400 pr-1 focus:outline-none focus:opacity-100 flex-shrink-0">
+                <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3" aria-hidden="true">
+                  <path d="M2 3h8M4 3V2h4v1M5 5v3M7 5v3M3 3l.5 6.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5L9 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+          </div>
 
           {/* User lists */}
           {lists.map(list => (
@@ -899,23 +918,36 @@ export default function App() {
                   <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
                 </button>
               </div>
-              {[
-                { id: null as null, label: 'All lists', count: tasks.length, icon: 'M2 4h12M2 8h12M2 12h12' },
-                { id: 'inbox' as string, label: 'Inbox', count: listTaskCounts.inbox, icon: 'M2 10h4l1.5 2h5L14 10V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v6z' },
-              ].map(item => (
-                <button
-                  key={String(item.id)}
-                  type="button"
-                  onClick={() => { setActiveListId(item.id); if (view === 'goals') setView('list'); setMobileMenuOpen(false) }}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none ${activeListId === item.id ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-                >
+              <button type="button" onClick={() => { setActiveListId(null); if (view === 'goals') setView('list'); setMobileMenuOpen(false) }}
+                className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none ${activeListId === null ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                <span className="flex items-center gap-2">
+                  <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+                  All lists
+                </span>
+                <span className="text-xs text-gray-400">{tasks.length}</span>
+              </button>
+              <div className="flex items-center group/list">
+                <button type="button" onClick={() => { setActiveListId('inbox'); if (view === 'goals') setView('list'); setMobileMenuOpen(false); setClearingListId(null) }}
+                  className={`flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none ${activeListId === 'inbox' ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
                   <span className="flex items-center gap-2">
-                    <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true"><path d={item.icon} stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" /></svg>
-                    {item.label}
+                    <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true"><path d="M2 10h4l1.5 2h5L14 10V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v6z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" /></svg>
+                    Inbox
                   </span>
-                  <span className="text-xs text-gray-400">{item.count}</span>
+                  <span className="text-xs text-gray-400">{listTaskCounts.inbox}</span>
                 </button>
-              ))}
+                {clearingListId === 'inbox' ? (
+                  <div className="flex items-center gap-1 pr-1 flex-shrink-0">
+                    <span className="text-xs text-red-400">Clear?</span>
+                    <button type="button" onClick={() => { clearList('inbox'); setClearingListId(null) }} className="text-xs text-red-400 hover:text-red-600 font-medium focus:outline-none">Yes</button>
+                    <button type="button" onClick={() => setClearingListId(null)} className="text-xs text-gray-400 hover:text-gray-600 focus:outline-none">No</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setClearingListId('inbox')} aria-label="Clear inbox"
+                    className="opacity-0 group-hover/list:opacity-100 transition-opacity text-gray-300 hover:text-orange-400 dark:text-gray-600 dark:hover:text-orange-400 pr-1 focus:outline-none focus:opacity-100 flex-shrink-0">
+                    <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3" aria-hidden="true"><path d="M2 3h8M4 3V2h4v1M5 5v3M7 5v3M3 3l.5 6.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5L9 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </button>
+                )}
+              </div>
               {lists.map(list => (
                 <div key={list.id} className="flex items-center group/list">
                   <button type="button" onClick={() => { setActiveListId(list.id); if (view === 'goals') setView('list'); setMobileMenuOpen(false); setClearingListId(null) }} className={`flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none ${activeListId === list.id && view !== 'goals' ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
