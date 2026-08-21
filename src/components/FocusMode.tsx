@@ -168,6 +168,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
   const [tapToPlay, setTapToPlay] = useState<'work' | 'break' | null>(null)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const expiresAtRef = useRef<number | null>(null)
   const modeRef = useRef<'work' | 'break'>('work')
   const workSecsRef = useRef(initial.workMins * 60)
   const breakSecsRef = useRef(initial.breakMins * 60)
@@ -195,44 +196,58 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
 
   useEffect(() => {
     if (running) {
+      // Anchor expiry so the countdown survives screen lock / tab throttling.
+      // Each tick computes remaining from Date.now() rather than decrementing by 1.
+      expiresAtRef.current = Date.now() + secs * 1000
       intervalRef.current = setInterval(() => {
-        setSecs(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current!)
-            setRunning(false)
-            const currentMode = modeRef.current
-            const nextMode = currentMode === 'work' ? 'break' : 'work'
-            setMode(nextMode)
-            setSecs(nextMode === 'work' ? workSecsRef.current : breakSecsRef.current)
-            playAlert(currentMode === 'work' ? 'work' : 'break', loadSoundSettingsFull(), () => {
-              setTapToPlay(currentMode === 'work' ? 'work' : 'break')
-            })
-            notify(
-              currentMode === 'work' ? '⏰ Focus session complete!' : '⏰ Break over!',
-              currentMode === 'work'
-                ? `Great work on "${task.title}". Time for a 5-minute break.`
-                : 'Ready for the next focus session?',
-            )
-            setFlash(true)
-            setTimeout(() => setFlash(false), 1200)
-            if (currentMode === 'work') {
-              const logged = workSecsRef.current
-              onLogTimeRef.current(task.id, logged)
-              setSessionSecs(s => s + logged)
-            }
-            return 0
+        const remaining = Math.max(0, Math.round((expiresAtRef.current! - Date.now()) / 1000))
+        if (remaining <= 0) {
+          clearInterval(intervalRef.current!)
+          setRunning(false)
+          const currentMode = modeRef.current
+          const nextMode = currentMode === 'work' ? 'break' : 'work'
+          setMode(nextMode)
+          setSecs(nextMode === 'work' ? workSecsRef.current : breakSecsRef.current)
+          playAlert(currentMode === 'work' ? 'work' : 'break', loadSoundSettingsFull(), () => {
+            setTapToPlay(currentMode === 'work' ? 'work' : 'break')
+          })
+          notify(
+            currentMode === 'work' ? '⏰ Focus session complete!' : '⏰ Break over!',
+            currentMode === 'work'
+              ? `Great work on "${task.title}". Time for a 5-minute break.`
+              : 'Ready for the next focus session?',
+          )
+          setFlash(true)
+          setTimeout(() => setFlash(false), 1200)
+          if (currentMode === 'work') {
+            const logged = workSecsRef.current
+            onLogTimeRef.current(task.id, logged)
+            setSessionSecs(s => s + logged)
           }
+        } else {
+          setSecs(remaining)
           if (modeRef.current === 'work') {
             setSessionSecs(s => s + 1)
           }
-          return prev - 1
-        })
+        }
       }, 1000)
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [running, task.title, task.id])
+
+  // Snap display to correct remaining time the moment the screen unlocks.
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible' && expiresAtRef.current !== null) {
+        const remaining = Math.max(0, Math.round((expiresAtRef.current - Date.now()) / 1000))
+        setSecs(remaining)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
 
   const switchMode = useCallback((m: 'work' | 'break') => {
     setRunning(false)
