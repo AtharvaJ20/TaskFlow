@@ -235,32 +235,46 @@ export function useTasks(userId: string | null) {
           : frequency === 'custom' ? nextCustomDay(base, task.recurrence.customDays ?? [])
           : addMonths(base, interval)
 
-        const nextTask: Task = {
-          ...task,
-          id: uuidv4(),
-          completed: false,
-          completedAt: undefined,
-          dueDate: format(nextDue, 'yyyy-MM-dd'),
-          createdAt: new Date().toISOString(),
-          subtasks: (task.subtasks ?? []).map(s => ({ ...s, completed: false })),
-        }
+        const nextDueStr = format(nextDue, 'yyyy-MM-dd')
+        const alreadyExists = prev.some(t =>
+          t.id !== id &&
+          !t.completed &&
+          t.title === task.title &&
+          t.recurrence?.frequency === frequency &&
+          t.recurrence?.interval === interval &&
+          t.dueDate === nextDueStr
+        )
+
+        const completedState = prev.map(t =>
+          t.id !== id ? t : { ...t, completed: true, completedAt: new Date().toISOString() }
+        )
 
         if (userId) {
           const now = new Date().toISOString()
           supabase.from('tasks').update({ completed: true, completed_at: now }).eq('id', id).then(({ error }) => {
             if (error) console.error('toggleTask complete:', error.message)
           })
+        }
+
+        if (alreadyExists) return completedState
+
+        const nextTask: Task = {
+          ...task,
+          id: uuidv4(),
+          completed: false,
+          completedAt: undefined,
+          dueDate: nextDueStr,
+          createdAt: new Date().toISOString(),
+          subtasks: (task.subtasks ?? []).map(s => ({ ...s, completed: false })),
+        }
+
+        if (userId) {
           supabase.from('tasks').insert(toRow(nextTask, userId)).then(({ error }) => {
             if (error) console.error('toggleTask recur:', error.message)
           })
         }
 
-        return [
-          ...prev.map(t =>
-            t.id !== id ? t : { ...t, completed: true, completedAt: new Date().toISOString() }
-          ),
-          nextTask,
-        ]
+        return [...completedState, nextTask]
       }
 
       const completed = !task.completed
