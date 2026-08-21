@@ -42,8 +42,8 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'Repeat / Recurrence',
-        description: 'Click the ↻ chip to schedule a task that repeats. Choose Daily, Weekly, Monthly, or Custom — which lets you pick specific weekdays.',
-        example: '"Water plants" → ↻ → Custom → toggle Mo, We, Fr. Every time you complete it, the next Monday/Wednesday/Friday occurrence is created automatically.',
+        description: 'Click the ↻ chip to schedule a task that repeats. Choose Daily, Weekly, Monthly, or Custom — which lets you pick specific weekdays. When you complete a recurring task, the next occurrence is created automatically but stays hidden until its due date.',
+        example: '"Water plants" → ↻ → Custom → toggle Mo, We, Fr. Complete today\'s task → tomorrow\'s won\'t appear in your list until that day arrives.',
       },
       {
         title: 'Add tags',
@@ -81,6 +81,11 @@ const SECTIONS: Section[] = [
         title: 'Add subtasks',
         description: 'Open a task modal → use the Subtasks section to add checklist items. Each subtask has its own completion checkbox. Progress shows on the card.',
         example: '"Plan vacation" → subtasks: "Book flights", "Reserve hotel", "Pack bags". Card shows "1/3" until all are checked.',
+      },
+      {
+        title: 'Pin a task',
+        description: 'Click the 📌 pin icon on a task card to keep it at the top of your list regardless of sort order or due date. Pin it again to unpin.',
+        example: 'Pin "Drink water every hour" so it\'s always visible at the top, even when you sort by due date or priority.',
       },
       {
         title: 'Reorder tasks',
@@ -159,34 +164,39 @@ const SECTIONS: Section[] = [
     color: 'text-purple-500',
     items: [
       {
-        title: 'Create a goal',
-        description: 'Click Goals in the sidebar, then "New goal". Give it a title, an optional description, a deadline date, and a colour. Goals appear in the sidebar with a live mini progress bar.',
-        example: '"Launch MVP" → deadline Dec 31 → colour indigo → Create. The goal appears in the sidebar ready to link tasks to.',
+        title: 'Two goal types',
+        description: 'TaskFlow has two kinds of goals. Task-based goals track progress by counting linked task completions (e.g. "Launch MVP" tracked via work tasks). Metric goals track a number you update manually — weight, savings, pages read, or anything numeric.',
+        example: '"Read 300 pages" → Metric goal → start 0, target 300, unit pages. Log your current page count after each session and watch the bar fill.',
+      },
+      {
+        title: 'Create a task-based goal',
+        description: 'Click Goals in the sidebar → "New goal" → choose Task-based. Set a title, deadline, and colour. Progress is calculated from how many linked tasks you\'ve completed vs how many are expected by the deadline.',
+        example: '"Launch MVP" → Task-based → deadline Dec 31 → indigo. Link tasks like "Write landing page" and "Set up payments". Progress reflects your pace relative to the deadline.',
+      },
+      {
+        title: 'Create a metric goal',
+        description: 'Click Goals → "New goal" → choose Metric-based. Set a start value, target value, and unit. Log your current value any time via the "Log progress" button on the goal card.',
+        example: '"Lose weight" → Metric → start 85 kg, target 75 kg. After each weigh-in, tap "Log progress" and enter your current weight. The card shows velocity per day and a projected finish date.',
       },
       {
         title: 'Link a task to a goal',
-        description: 'When adding a task, use the Goal dropdown in the quick-add bar to attach it to a goal. You can also open any existing task and set the Goal field in the detail panel.',
-        example: '"Write landing page copy" → Goal: "Launch MVP" → Add. The task now counts toward that goal\'s progress.',
+        description: 'When adding a task, use the Goal dropdown in the quick-add bar to attach it to a task-based goal. You can also open any existing task and set the Goal field in the detail panel.',
+        example: '"Write landing page copy" → Goal: "Launch MVP" → Add. The task now counts toward that goal\'s progress when completed.',
       },
       {
-        title: 'Progress dashboard',
-        description: 'Click Goals in the sidebar to open the Goals dashboard. Each goal shows a progress ring (% complete), status badge, days remaining, and projected finish date.',
-        example: 'Goal at 60% with 10 days left and a velocity of 2 tasks/day — the card shows "On track" and projects you\'ll finish 3 days early.',
+        title: 'Task-based progress formula',
+        description: 'Progress is based on your goal\'s full duration, not just tasks that exist so far. For a 30-day daily goal, completing day 1 shows ~3% — not 100% — because 29 more days of completions are expected.',
+        example: '"Read daily for a month" → you complete day 1 → goal shows 3% because the full 30 completions are expected over 30 days.',
       },
       {
         title: 'Status badges',
-        description: 'Each goal card automatically calculates your status based on current velocity vs what\'s needed to hit the deadline. On track · At risk · Overdue · Complete.',
-        example: '"At risk" means your last 7-day completion rate is too slow to finish before the deadline. Speed up or move the deadline.',
-      },
-      {
-        title: 'Projected finish date',
-        description: 'Calculated from your 7-day completion velocity: remaining tasks ÷ daily rate = days to finish. Updates every time you complete a task.',
-        example: '8 tasks left, completing 2 per day → projected finish in 4 days. Complete 3 tasks today → projection moves forward by a day.',
+        description: 'Each goal card automatically calculates your status: On track · At risk · Overdue · Complete. Based on your recent velocity vs what\'s needed to hit the deadline.',
+        example: '"At risk" means your last 7-day rate is too slow to finish before the deadline. Speed up or move the deadline.',
       },
       {
         title: 'Edit or delete a goal',
-        description: 'Click the pencil ✏ icon on any goal card in the dashboard to edit its title, description, deadline, or colour. Delete from the same modal.',
-        example: 'Deadline moved to next month? Click ✏ on the goal card → change the date → Save. All linked tasks are unaffected.',
+        description: 'Click the pencil ✏ icon on any goal card to edit its title, description, deadline, or colour. The goal type cannot be changed after creation. Delete from the same modal.',
+        example: 'Deadline moved to next month? Click ✏ → change the date → Save. Linked tasks and logged progress entries are unaffected.',
       },
     ],
   },
@@ -199,6 +209,11 @@ const SECTIONS: Section[] = [
         title: 'Start a session',
         description: 'Click the ⚡ lightning bolt button on any task card. Focus Mode opens with that task loaded and a 25-minute countdown ready.',
         example: 'Click ⚡ on "Write project proposal" → the timer starts for that specific task. Everything else fades out.',
+      },
+      {
+        title: 'Timer survives phone lock',
+        description: 'The timer keeps accurate time even if your phone screen locks or the browser tab goes to the background. When you unlock, it snaps to the correct remaining time instantly.',
+        example: 'Start a 25-minute session, lock your phone for 10 minutes → unlock → timer correctly shows 15 minutes remaining.',
       },
       {
         title: 'Pomodoro rhythm',
@@ -238,9 +253,24 @@ const SECTIONS: Section[] = [
         example: 'You have 3 tasks due Monday, 1 on Wednesday, 2 on Friday — switch to Calendar to see the week at a glance and spot any overloaded days.',
       },
       {
+        title: 'Completed tasks on past dates',
+        description: 'Completed tasks stay visible on the date they were due, shown with a strikethrough. This gives you a history of what you finished and when.',
+        example: 'Completed "Submit report" on Aug 18 → it stays on Aug 18 in the calendar with a strikethrough so you can see your work history.',
+      },
+      {
+        title: 'Future scheduled tasks',
+        description: 'Non-recurring tasks due in the future appear on their dates with a dashed outline, distinguishing them from tasks due today or in the past.',
+        example: '"Doctor appointment" due Aug 30 appears on Aug 30 with a dashed chip — clearly scheduled but not yet active.',
+      },
+      {
+        title: 'Daily recurring tasks hidden from future dates',
+        description: 'Daily recurring tasks are hidden from future calendar dates to avoid visual clutter — every day would otherwise show the same repeating task. They appear on today\'s date and each day as it arrives.',
+        example: '"Read 10 pages" is a daily task. The calendar shows it on today only, not on every future date, keeping the view clean.',
+      },
+      {
         title: 'Open a task from the calendar',
         description: 'Click any task chip on the calendar to open its detail modal and edit it.',
-        example: 'Click "Team meeting" on Thursday → modal opens → you can reschedule it to Friday by changing the due date.',
+        example: 'Click "Team meeting" on Thursday → modal opens → reschedule it to Friday by changing the due date.',
       },
     ],
   },
