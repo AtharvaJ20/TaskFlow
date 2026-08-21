@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Task, Priority, RecurrenceFrequency, TaskList } from '../types/task'
+import type { Task, Priority, RecurrenceFrequency, TaskList, Goal } from '../types/task'
 
 interface TaskModalProps {
   task: Task | null
@@ -10,6 +10,7 @@ interface TaskModalProps {
   onToggleSubtask: (taskId: string, subtaskId: string) => void
   onDeleteSubtask: (taskId: string, subtaskId: string) => void
   lists: TaskList[]
+  goals: Goal[]
 }
 
 function formatTimeLogged(secs: number): string {
@@ -21,7 +22,7 @@ function formatTimeLogged(secs: number): string {
   return rem > 0 ? `${h}h ${rem}m` : `${h}h`
 }
 
-export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubtask, onToggleSubtask, onDeleteSubtask, lists }: TaskModalProps) {
+export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubtask, onToggleSubtask, onDeleteSubtask, lists, goals }: TaskModalProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<Priority>('medium')
@@ -32,6 +33,7 @@ export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubt
   const [recurrence, setRecurrence] = useState<RecurrenceFrequency | 'none'>('none')
   const [customDays, setCustomDays] = useState<number[]>([])
   const [listId, setListId] = useState<string | undefined>(undefined)
+  const [goalId, setGoalId] = useState<string | undefined>(undefined)
 
   const titleRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -49,6 +51,7 @@ export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubt
       setRecurrence(task.recurrence?.frequency ?? 'none')
       setCustomDays(task.recurrence?.customDays ?? [])
       setListId(task.listId)
+      setGoalId(task.goalId)
     }
   }, [task])
 
@@ -129,6 +132,7 @@ export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubt
         : undefined
     if (JSON.stringify(newRecurrence) !== JSON.stringify(task.recurrence)) changes.recurrence = newRecurrence
     if (listId !== task.listId) changes.listId = listId
+    if (goalId !== task.goalId) changes.goalId = goalId
 
     onUpdate(task.id, changes)
     onClose()
@@ -338,6 +342,29 @@ export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubt
                   <option value="">Inbox</option>
                   {lists.map(l => (
                     <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Goal */}
+          {goals.length > 0 && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-20 flex-shrink-0">
+                Goal
+              </span>
+              <div className="flex items-center gap-2">
+                {goalId && (() => { const g = goals.find(x => x.id === goalId); return g ? <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: g.color }} /> : null })()}
+                <select
+                  aria-label="Goal"
+                  value={goalId ?? ''}
+                  onChange={e => setGoalId(e.target.value || undefined)}
+                  className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-accent-500 transition"
+                >
+                  <option value="">No goal</option>
+                  {goals.map(g => (
+                    <option key={g.id} value={g.id}>{g.title}</option>
                   ))}
                 </select>
               </div>

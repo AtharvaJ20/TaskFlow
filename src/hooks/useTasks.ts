@@ -49,6 +49,7 @@ interface TaskRow {
   completed_at: string | null
   time_logged: number
   pinned: boolean | null
+  goal_id: string | null
 }
 
 function fromRow(row: TaskRow): Task {
@@ -67,6 +68,7 @@ function fromRow(row: TaskRow): Task {
     completedAt: row.completed_at ?? undefined,
     timeLogged: row.time_logged ?? 0,
     pinned: row.pinned ?? false,
+    goalId: row.goal_id ?? undefined,
   }
 }
 
@@ -87,6 +89,7 @@ function toRow(task: Task, userId: string): TaskRow {
     completed_at: task.completedAt ?? null,
     time_logged: task.timeLogged ?? 0,
     pinned: task.pinned ?? null,
+    goal_id: task.goalId ?? null,
   }
 }
 
@@ -104,6 +107,7 @@ function dbChanges(changes: Partial<Omit<Task, 'id' | 'createdAt'>>): Record<str
   if ('completedAt' in changes) out.completed_at = changes.completedAt ?? null
   if ('timeLogged' in changes) out.time_logged = changes.timeLogged ?? 0
   if ('pinned' in changes) out.pinned = changes.pinned ?? null
+  if ('goalId' in changes) out.goal_id = changes.goalId ?? null
   return out
 }
 
@@ -184,6 +188,7 @@ export function useTasks(userId: string | null) {
       subtasks: [],
       ...(input.listId ? { listId: input.listId } : {}),
       ...(input.recurrence ? { recurrence: input.recurrence } : {}),
+      ...(input.goalId ? { goalId: input.goalId } : {}),
       createdAt: new Date().toISOString(),
     }
     setTasks(prev => [task, ...prev])

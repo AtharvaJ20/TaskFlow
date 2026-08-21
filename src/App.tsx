@@ -21,12 +21,15 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useAccentColor, ACCENT_OPTIONS } from './hooks/useAccentColor'
 import type { AccentColor } from './hooks/useAccentColor'
 import { useLists, LIST_COLORS } from './hooks/useLists'
+import { useGoals } from './hooks/useGoals'
+import GoalModal from './components/GoalModal'
+import GoalsView from './components/GoalsView'
 import { exportJSON, exportCSV } from './utils/exportTasks'
 import { importFromJSON, importFromCSV } from './utils/importTasks'
 import SoundSettingsPanel from './components/SoundSettingsPanel'
 import HelpModal from './components/HelpModal'
 import { type SoundSettings, loadSoundSettingsFull, saveSoundSettings } from './utils/soundSettings'
-import type { Task, Filter } from './types/task'
+import type { Task, Filter, Goal } from './types/task'
 
 const FILTER_TABS: { value: Filter; label: string; icon: string }[] = [
   { value: 'all', label: 'All Tasks', icon: 'M3 7h18M3 12h18M3 17h18' },
@@ -42,11 +45,14 @@ export default function App() {
   const { isDark, toggleTheme } = useTheme()
   const { accent, setAccent } = useAccentColor()
   const { lists, addList, deleteList } = useLists(mode === 'user' ? userId : null)
+  const { goals, addGoal, updateGoal, deleteGoal } = useGoals(mode === 'user' ? userId : null)
   const { filter, setFilter, sortBy, setSortBy, search, setSearch, tagFilter, setTagFilter, dueDateFilter, setDueDateFilter, priorityFilter, setPriorityFilter, activeFilterCount, clearAdvancedFilters, applyFilters } = useFilters()
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [view, setView] = useState<'list' | 'calendar'>('list')
+  const [view, setView] = useState<'list' | 'calendar' | 'goals'>('list')
   const [activeListId, setActiveListId] = useState<string | null>(null)
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
+  const [showGoalModal, setShowGoalModal] = useState(false)
   const [creatingList, setCreatingList] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [newListColor, setNewListColor] = useState(LIST_COLORS[0])
@@ -94,10 +100,11 @@ export default function App() {
   const selectedTask = useMemo(() => tasks.find(t => t.id === selectedTaskId) ?? null, [tasks, selectedTaskId])
 
   const listScopedTasks = useMemo(() => {
+    if (view === 'goals') return tasks
     if (activeListId === null) return tasks
     if (activeListId === 'inbox') return tasks.filter(t => !t.listId)
     return tasks.filter(t => t.listId === activeListId)
-  }, [tasks, activeListId])
+  }, [tasks, activeListId, view])
 
   const filteredTasks = useMemo(() => applyFilters(listScopedTasks), [applyFilters, listScopedTasks])
 
@@ -156,7 +163,7 @@ export default function App() {
     setSelectedTaskId(null)
   }, [deleteTask])
 
-  const filterLabel = FILTER_TABS.find(t => t.value === filter)?.label ?? 'Tasks'
+  const filterLabel = view === 'goals' ? 'Goals' : (FILTER_TABS.find(t => t.value === filter)?.label ?? 'Tasks')
 
   // Show auth screen when not yet signed in and not using guest mode
   if (mode === 'checking') {
@@ -240,14 +247,14 @@ export default function App() {
         <nav className="px-3 py-4" aria-label="Task filters">
           <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-2">View</p>
           {FILTER_TABS.map(({ value, label, icon }) => {
-            const isActive = filter === value
+            const isActive = filter === value && view !== 'goals'
             const count = taskCounts[value]
             return (
               <button
                 key={value}
                 type="button"
                 aria-pressed={isActive}
-                onClick={() => setFilter(value)}
+                onClick={() => { setFilter(value); if (view === 'goals') setView('list') }}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium mb-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
                   isActive
                     ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300'
@@ -291,9 +298,9 @@ export default function App() {
           {/* All lists */}
           <button
             type="button"
-            onClick={() => setActiveListId(null)}
+            onClick={() => { setActiveListId(null); if (view === 'goals') setView('list') }}
             className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
-              activeListId === null
+              activeListId === null && view !== 'goals'
                 ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
@@ -310,7 +317,7 @@ export default function App() {
           {/* Inbox */}
           <button
             type="button"
-            onClick={() => setActiveListId('inbox')}
+            onClick={() => { setActiveListId('inbox'); if (view === 'goals') setView('list') }}
             className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
               activeListId === 'inbox'
                 ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium'
@@ -387,6 +394,80 @@ export default function App() {
               />
             </div>
           )}
+        </div>
+
+        {/* Goals section */}
+        <div className="px-3 border-t border-gray-100 dark:border-gray-800 py-3">
+          <div className="flex items-center justify-between px-3 mb-1">
+            <button
+              type="button"
+              onClick={() => setView('goals')}
+              className={`text-xs font-medium uppercase tracking-wider transition-colors ${
+                view === 'goals'
+                  ? 'text-accent-600 dark:text-accent-400'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+              }`}
+            >
+              Goals
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEditingGoal(null); setShowGoalModal(true) }}
+              aria-label="Create new goal"
+              className="text-gray-400 hover:text-accent-500 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 rounded"
+            >
+              <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4" aria-hidden="true">
+                <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Goals view nav */}
+          <button
+            type="button"
+            onClick={() => setView('goals')}
+            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
+              view === 'goals'
+                ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true">
+                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3" />
+                <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+                <circle cx="8" cy="8" r="0.8" fill="currentColor" />
+              </svg>
+              All goals
+            </span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{goals.length}</span>
+          </button>
+
+          {/* Per-goal rows with mini progress */}
+          {goals.map(goal => {
+            const total = tasks.filter(t => t.goalId === goal.id).length
+            const done = tasks.filter(t => t.goalId === goal.id && t.completed).length
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0
+            return (
+              <button
+                key={goal.id}
+                type="button"
+                onClick={() => setView('goals')}
+                className="w-full flex flex-col px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-accent-500"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="flex items-center gap-2 truncate">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: goal.color }} aria-hidden="true" />
+                    <span className="truncate">{goal.title}</span>
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 ml-2 flex-shrink-0">{pct}%</span>
+                </div>
+                <div className="mt-1 ml-4.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: goal.color }} />
+                </div>
+              </button>
+            )
+          })}
         </div>
 
         {/* Accent color picker */}
@@ -568,35 +649,48 @@ export default function App() {
         {/* Main content */}
         <main className="px-4 py-5 lg:px-8 lg:py-7 max-w-3xl lg:max-w-none">
           <div className="flex flex-col gap-4">
-            <TaskInput onAdd={addTask} lists={lists} activeListId={activeListId} />
+            {view !== 'goals' && (
+              <TaskInput onAdd={addTask} lists={lists} goals={goals} activeListId={activeListId} />
+            )}
 
-            <Toolbar
-              filter={filter}
-              onFilterChange={setFilter}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-              search={search}
-              onSearchChange={setSearch}
-              taskCounts={taskCounts}
-              tagFilter={tagFilter}
-              onClearTagFilter={() => setTagFilter(null)}
-              onExportJSON={() => exportJSON(tasks)}
-              onExportCSV={() => exportCSV(tasks)}
-              onImportFile={handleImportFile}
-              view={view}
-              onViewChange={setView}
-              dueDateFilter={dueDateFilter}
-              onDueDateFilterChange={setDueDateFilter}
-              priorityFilter={priorityFilter}
-              onPriorityFilterChange={setPriorityFilter}
-              activeFilterCount={activeFilterCount}
-              onClearAdvancedFilters={clearAdvancedFilters}
-            />
+            {view !== 'goals' && (
+              <Toolbar
+                filter={filter}
+                onFilterChange={setFilter}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                search={search}
+                onSearchChange={setSearch}
+                taskCounts={taskCounts}
+                tagFilter={tagFilter}
+                onClearTagFilter={() => setTagFilter(null)}
+                onExportJSON={() => exportJSON(tasks)}
+                onExportCSV={() => exportCSV(tasks)}
+                onImportFile={handleImportFile}
+                view={view}
+                onViewChange={setView}
+                dueDateFilter={dueDateFilter}
+                onDueDateFilterChange={setDueDateFilter}
+                priorityFilter={priorityFilter}
+                onPriorityFilterChange={setPriorityFilter}
+                activeFilterCount={activeFilterCount}
+                onClearAdvancedFilters={clearAdvancedFilters}
+              />
+            )}
 
             {tasksLoading ? (
               <div className="flex items-center justify-center py-16">
                 <div className="w-7 h-7 rounded-full border-2 border-accent-500 border-t-transparent animate-spin" aria-label="Loading tasks" />
               </div>
+            ) : view === 'goals' ? (
+              <GoalsView
+                goals={goals}
+                tasks={tasks}
+                onEditGoal={(goal) => { setEditingGoal(goal); setShowGoalModal(true) }}
+                onNewGoal={() => { setEditingGoal(null); setShowGoalModal(true) }}
+                onTaskClick={(task: Task) => setSelectedTaskId(task.id)}
+                onToggleTask={toggleTask}
+              />
             ) : view === 'calendar' ? (
               <CalendarView
                 tasks={tasks}
@@ -632,6 +726,7 @@ export default function App() {
         onToggleSubtask={toggleSubtask}
         onDeleteSubtask={deleteSubtask}
         lists={lists}
+        goals={goals}
       />
 
       {selectedIds.size > 0 && (
@@ -645,6 +740,15 @@ export default function App() {
 
       {showStats && (
         <StatsModal tasks={tasks} onClose={() => setShowStats(false)} />
+      )}
+
+      {showGoalModal && (
+        <GoalModal
+          goal={editingGoal}
+          onSave={data => editingGoal ? updateGoal(editingGoal.id, data) : addGoal(data)}
+          onDelete={deleteGoal}
+          onClose={() => setShowGoalModal(false)}
+        />
       )}
 
       {showHelp && (

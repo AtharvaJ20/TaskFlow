@@ -1,5 +1,14 @@
 export type Priority = 'low' | 'medium' | 'high'
 
+export interface Goal {
+  id: string
+  title: string
+  description?: string
+  deadline: string   // YYYY-MM-DD
+  color: string      // hex
+  createdAt: string
+}
+
 export interface TaskList {
   id: string
   name: string
@@ -38,6 +47,7 @@ export interface Task {
   completedAt?: string   // set when completed flips to true
   timeLogged?: number    // total seconds focused via Focus Mode
   pinned?: boolean
+  goalId?: string
 }
 
 export interface NewTaskInput {
@@ -48,4 +58,5 @@ export interface NewTaskInput {
   tags?: string[]
   listId?: string
   recurrence?: Recurrence
+  goalId?: string
 }

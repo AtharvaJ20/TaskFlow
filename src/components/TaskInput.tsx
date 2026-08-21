@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { format, isToday, isTomorrow, addDays } from 'date-fns'
-import type { NewTaskInput, Priority, RecurrenceFrequency, TaskList } from '../types/task'
+import type { NewTaskInput, Priority, RecurrenceFrequency, TaskList, Goal } from '../types/task'
 
 const REPEAT_OPTIONS: { value: RecurrenceFrequency | 'none'; label: string }[] = [
   { value: 'none',    label: 'No repeat' },
@@ -16,7 +16,9 @@ const DAY_FULL   = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fri
 interface TaskInputProps {
   onAdd: (input: NewTaskInput) => void
   lists: TaskList[]
+  goals: Goal[]
   activeListId?: string | null
+  activeGoalId?: string | null
 }
 
 const PRIORITY_CONFIG: { value: Priority; label: string; classes: string; selectedClasses: string }[] = [
@@ -43,7 +45,7 @@ const PRIORITY_CONFIG: { value: Priority; label: string; classes: string; select
   },
 ]
 
-export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps) {
+export default function TaskInput({ onAdd, lists, goals, activeListId, activeGoalId }: TaskInputProps) {
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState<Priority>('medium')
   const [dueDate, setDueDate] = useState('')
@@ -51,6 +53,9 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
   const [tagInput, setTagInput] = useState('')
   const [listId, setListId] = useState<string | undefined>(
     activeListId && activeListId !== 'inbox' && activeListId !== null ? activeListId : undefined
+  )
+  const [goalId, setGoalId] = useState<string | undefined>(
+    activeGoalId ?? undefined
   )
   const [repeatFreq, setRepeatFreq] = useState<RecurrenceFrequency | 'none'>('none')
   const [customDays, setCustomDays] = useState<number[]>([])
@@ -65,6 +70,11 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
       setListId(undefined)
     }
   }, [activeListId])
+
+  // Keep goalId in sync when active goal changes externally
+  useEffect(() => {
+    setGoalId(activeGoalId ?? undefined)
+  }, [activeGoalId])
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -149,6 +159,7 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
       ...(tags.length > 0 ? { tags } : {}),
       ...(listId ? { listId } : {}),
       ...(recurrence ? { recurrence } : {}),
+      ...(goalId ? { goalId } : {}),
     }
     onAdd(input)
 
@@ -170,6 +181,7 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
   }
 
   const selectedList = lists.find(l => l.id === listId)
+  const selectedGoal = goals.find(g => g.id === goalId)
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
@@ -305,6 +317,22 @@ export default function TaskInput({ onAdd, lists, activeListId }: TaskInputProps
             <option value="">Inbox</option>
             {lists.map(l => (
               <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
+        )}
+
+        {/* Goal picker */}
+        {goals.length > 0 && (
+          <select
+            aria-label="Link to goal"
+            value={goalId ?? ''}
+            onChange={(e) => setGoalId(e.target.value || undefined)}
+            className="text-sm bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 outline-none focus:border-accent-400 transition-colors"
+            style={selectedGoal ? { borderLeftColor: selectedGoal.color, borderLeftWidth: 3 } : {}}
+          >
+            <option value="">No goal</option>
+            {goals.map(g => (
+              <option key={g.id} value={g.id}>{g.title}</option>
             ))}
           </select>
         )}
