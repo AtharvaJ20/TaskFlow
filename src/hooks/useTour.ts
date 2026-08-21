@@ -58,5 +58,17 @@ export function useTour(userId: string | null) {
     }
   }
 
-  return { step, next, dismiss }
+  function reset() {
+    localStorage.removeItem(TOUR_KEY)
+    syncedRef.current = null
+    if (userId) {
+      supabase.auth.updateUser({ data: { toured: false } }).then(() => {
+        setTimeout(() => setStep(0), 300)
+      })
+    } else {
+      setTimeout(() => setStep(0), 300)
+    }
+  }
+
+  return { step, next, dismiss, reset }
 }

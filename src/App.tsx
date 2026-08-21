@@ -69,7 +69,7 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false)
   const [soundSettings, setSoundSettings] = useState<SoundSettings>(loadSoundSettingsFull)
   const [soundSaveError, setSoundSaveError] = useState<string | null>(null)
-  const { step: tourStep, next: tourNext, dismiss: tourDismiss } = useTour(userId)
+  const { step: tourStep, next: tourNext, dismiss: tourDismiss, reset: tourReset } = useTour(userId)
 
   function handleSoundChange(s: SoundSettings) {
     setSoundSettings(s)
@@ -781,7 +781,7 @@ export default function App() {
       )}
 
       {showHelp && (
-        <HelpModal onClose={() => setShowHelp(false)} />
+        <HelpModal onClose={() => setShowHelp(false)} onReplayTour={() => { setShowHelp(false); tourReset() }} />
       )}
 
       {focusTask && (
@@ -798,7 +798,7 @@ export default function App() {
       {tourStep !== null && (
         <WelcomeTour
           step={tourStep}
-          onNext={() => tourNext(5)}
+          onNext={() => tourNext(6)}
           onSkip={tourDismiss}
         />
       )}

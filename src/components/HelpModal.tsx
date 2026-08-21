@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 interface HelpModalProps {
   onClose: () => void
+  onReplayTour?: () => void
 }
 
 interface HelpItem {
@@ -387,7 +388,7 @@ function ExampleBadge() {
   )
 }
 
-export default function HelpModal({ onClose }: HelpModalProps) {
+export default function HelpModal({ onClose, onReplayTour }: HelpModalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [activeSection, setActiveSection] = useState<string | null>(null)
 
@@ -522,13 +523,27 @@ export default function HelpModal({ onClose }: HelpModalProps) {
             </section>
           ))}
 
-          <p className="text-center text-xs text-gray-400 dark:text-gray-600 pb-2">
-            Press{' '}
-            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs font-mono">
-              Esc
-            </kbd>{' '}
-            to close
-          </p>
+          <div className="flex items-center justify-center gap-4 pb-2">
+            {onReplayTour && (
+              <button
+                type="button"
+                onClick={onReplayTour}
+                className="flex items-center gap-1.5 text-xs text-accent-600 dark:text-accent-400 hover:underline focus:outline-none focus:ring-2 focus:ring-accent-500 rounded"
+              >
+                <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3" aria-hidden="true">
+                  <path d="M2 7a5 5 0 1 0 1-2.9M2 4v3H5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Replay tour
+              </button>
+            )}
+            <p className="text-xs text-gray-400 dark:text-gray-600">
+              Press{' '}
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs font-mono">
+                Esc
+              </kbd>{' '}
+              to close
+            </p>
+          </div>
         </div>
       </div>
     </div>
