@@ -69,6 +69,30 @@ const STEPS = [
   {
     icon: (
       <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20" aria-hidden="true">
+        {/* Progress ring */}
+        <circle cx="40" cy="38" r="22" stroke="rgb(var(--ca-500) / 0.2)" strokeWidth="5" />
+        <circle cx="40" cy="38" r="22" stroke="rgb(var(--ca-500))" strokeWidth="5" strokeLinecap="round"
+          strokeDasharray="138" strokeDashoffset="48" transform="rotate(-90 40 38)" />
+        {/* Flag at top of ring */}
+        <path d="M40 16v-6M40 10h8l-3 4 3 4h-8" stroke="rgb(var(--ca-400))" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Centre pct */}
+        <text x="40" y="35" textAnchor="middle" fontSize="10" fontWeight="700" fill="rgb(var(--ca-500))">65%</text>
+        <text x="40" y="45" textAnchor="middle" fontSize="6" fill="rgb(var(--ca-400))">on track</text>
+        {/* Small task ticks below */}
+        <rect x="8" y="64" width="28" height="10" rx="3" fill="rgb(var(--ca-500) / 0.12)" stroke="rgb(var(--ca-400))" strokeWidth="1.2" />
+        <path d="M13 69l2.5 2.5 5-5" stroke="rgb(var(--ca-500))" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M23 69h8" stroke="rgb(var(--ca-300))" strokeWidth="1.4" strokeLinecap="round" />
+        <rect x="44" y="64" width="28" height="10" rx="3" fill="rgb(var(--ca-500) / 0.06)" stroke="rgb(var(--ca-300))" strokeWidth="1.2" strokeDasharray="3 2" />
+        <path d="M49 69h18" stroke="rgb(var(--ca-300))" strokeWidth="1.4" strokeLinecap="round" opacity="0.5" />
+      </svg>
+    ),
+    title: 'Goals — big-picture progress',
+    body: 'Create task-based goals to track a project over its deadline, or metric goals to log numbers like weight, pages read, or savings. Progress updates automatically as you complete tasks or log entries.',
+    cta: 'Next',
+  },
+  {
+    icon: (
+      <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20" aria-hidden="true">
         <rect x="10" y="52" width="12" height="18" rx="3" fill="rgb(var(--ca-400))" opacity="0.5" />
         <rect x="28" y="36" width="12" height="34" rx="3" fill="rgb(var(--ca-500))" opacity="0.7" />
         <rect x="46" y="24" width="12" height="46" rx="3" fill="rgb(var(--ca-600))" />
