@@ -125,8 +125,33 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
     : 'at-risk'
 
   const projectedDays = dailyVelocity > 0 && remaining > 0 ? Math.ceil(remaining / dailyVelocity) : null
-  const activeTasks = linked.filter(t => !t.completed)
-  const completedTasks = linked.filter(t => t.completed)
+
+  // Deduplicate recurring tasks — show one row per unique pattern, not one per instance
+  const { nonRecurring, recurringGroups } = useMemo(() => {
+    const map = new Map<string, { representative: Task; completedCount: number; activeTask: Task | null }>()
+    const nonRecurring: Task[] = []
+    for (const t of linked) {
+      if (!t.recurrence) {
+        nonRecurring.push(t)
+      } else {
+        const key = `${t.title}-${t.recurrence.frequency}-${t.recurrence.interval}`
+        if (!map.has(key)) {
+          map.set(key, { representative: t, completedCount: t.completed ? 1 : 0, activeTask: !t.completed ? t : null })
+        } else {
+          const g = map.get(key)!
+          if (t.completed) g.completedCount++
+          else if (!g.activeTask) g.activeTask = t
+        }
+      }
+    }
+    return { nonRecurring, recurringGroups: Array.from(map.values()) }
+  }, [linked])
+
+  const uniqueCount = nonRecurring.length + recurringGroups.length
+  const activeNonRecurring = nonRecurring.filter(t => !t.completed)
+  const completedNonRecurring = nonRecurring.filter(t => t.completed)
+  const activeRecurring = recurringGroups.filter(g => g.activeTask !== null)
+  const completedRecurring = recurringGroups.filter(g => g.activeTask === null && g.completedCount > 0)
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
@@ -173,13 +198,13 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
           </div>
         </div>
 
-        {total > 0 && (
+        {uniqueCount > 0 && (
           <button
             type="button"
             onClick={() => setShowTasks(v => !v)}
             className="w-full flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors py-1"
           >
-            <span>{total} linked task{total !== 1 ? 's' : ''}</span>
+            <span>{uniqueCount} linked task{uniqueCount !== 1 ? 's' : ''}</span>
             <svg viewBox="0 0 16 16" fill="none" className={`w-3.5 h-3.5 transition-transform ${showTasks ? 'rotate-180' : ''}`} aria-hidden="true">
               <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -188,7 +213,8 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
 
         {showTasks && (
           <div className="mt-2 flex flex-col gap-1">
-            {activeTasks.map(task => (
+            {/* Active non-recurring tasks */}
+            {activeNonRecurring.map(task => (
               <div key={task.id} className="flex items-center gap-2.5 py-1">
                 <button type="button" onClick={() => onToggleTask(task.id)} aria-label="Mark complete"
                   className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 hover:border-accent-400 transition-colors focus:outline-none" />
@@ -198,9 +224,24 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
                 </button>
               </div>
             ))}
-            {completedTasks.length > 0 && (
+            {/* Active recurring patterns — one row per unique pattern */}
+            {activeRecurring.map(({ representative, completedCount, activeTask }) => (
+              <div key={`${representative.title}-${representative.recurrence?.frequency}`} className="flex items-center gap-2.5 py-1">
+                <button type="button" onClick={() => onToggleTask(activeTask!.id)} aria-label="Mark complete"
+                  className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 hover:border-accent-400 transition-colors focus:outline-none" />
+                <button type="button" onClick={() => onTaskClick(activeTask!)}
+                  className="flex-1 text-sm text-gray-700 dark:text-gray-300 text-left truncate hover:text-accent-600 dark:hover:text-accent-400 transition-colors focus:outline-none">
+                  {representative.title}
+                </button>
+                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+                  {representative.recurrence?.frequency} · {completedCount} done
+                </span>
+              </div>
+            ))}
+            {/* Completed section */}
+            {(completedNonRecurring.length > 0 || completedRecurring.length > 0) && (
               <div className="mt-1 pt-1 border-t border-gray-100 dark:border-gray-700">
-                {completedTasks.map(task => (
+                {completedNonRecurring.map(task => (
                   <div key={task.id} className="flex items-center gap-2.5 py-1 opacity-50">
                     <button type="button" onClick={() => onToggleTask(task.id)} aria-label="Mark incomplete"
                       className="w-4 h-4 rounded-full bg-indigo-600 border-2 border-indigo-600 flex-shrink-0 flex items-center justify-center focus:outline-none">
@@ -211,12 +252,25 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
                     <span className="flex-1 text-sm text-gray-400 dark:text-gray-500 line-through truncate">{task.title}</span>
                   </div>
                 ))}
+                {completedRecurring.map(({ representative, completedCount }) => (
+                  <div key={`${representative.title}-${representative.recurrence?.frequency}-done`} className="flex items-center gap-2.5 py-1 opacity-50">
+                    <div className="w-4 h-4 rounded-full bg-indigo-600 border-2 border-indigo-600 flex-shrink-0 flex items-center justify-center">
+                      <svg viewBox="0 0 10 10" fill="none" className="w-2.5 h-2.5" aria-hidden="true">
+                        <path d="M2 5l2.5 2.5 3.5-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <span className="flex-1 text-sm text-gray-400 dark:text-gray-500 line-through truncate">{representative.title}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+                      {representative.recurrence?.frequency} · {completedCount} done
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         )}
 
-        {total === 0 && (
+        {uniqueCount === 0 && (
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             No tasks linked yet — assign tasks to this goal from the task form or task detail.
           </p>
