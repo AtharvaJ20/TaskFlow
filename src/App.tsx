@@ -58,7 +58,7 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false)
   const [soundSettings, setSoundSettings] = useState<SoundSettings>(loadSoundSettingsFull)
   const [soundSaveError, setSoundSaveError] = useState<string | null>(null)
-  const { step: tourStep, next: tourNext, dismiss: tourDismiss } = useTour()
+  const { step: tourStep, next: tourNext, dismiss: tourDismiss } = useTour(userId)
 
   function handleSoundChange(s: SoundSettings) {
     setSoundSettings(s)
