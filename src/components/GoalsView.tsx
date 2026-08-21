@@ -239,7 +239,7 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
                     {representative.title}
                   </button>
                   <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                    {representative.recurrence?.frequency} · {completedCount} done{isFutureTask ? ' · upcoming' : ''}
+                    {representative.recurrence?.frequency} · {completedCount} done{isFutureTask && dueDay ? ` · ${format(dueDay, 'MMM d')}` : ''}
                   </span>
                 </div>
               )
