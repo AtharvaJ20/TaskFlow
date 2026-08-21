@@ -304,6 +304,25 @@ export function useTasks(userId: string | null) {
     })
   }, [userId])
 
+  const clearList = useCallback((listId: string | 'inbox') => {
+    setTasks(prev => {
+      const toDelete = prev.filter(t =>
+        listId === 'inbox' ? !t.listId : t.listId === listId
+      )
+      if (userId) {
+        const ids = toDelete.map(t => t.id)
+        if (ids.length > 0) {
+          supabase.from('tasks').delete().in('id', ids).then(({ error }) => {
+            if (error) console.error('clearList:', error.message)
+          })
+        }
+      }
+      return listId === 'inbox'
+        ? prev.filter(t => !!t.listId)
+        : prev.filter(t => t.listId !== listId)
+    })
+  }, [userId])
+
   const undoDelete = useCallback(() => {
     if (!lastDeleted) return
     const { task, index } = lastDeleted
@@ -452,6 +471,7 @@ export function useTasks(userId: string | null) {
     updateTask,
     toggleTask,
     deleteTask,
+    clearList,
     undoDelete,
     clearUndo,
     clearCompleted,

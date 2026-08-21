@@ -44,7 +44,7 @@ export default function App() {
   const { user, mode, authError, signIn, signUp, signOut, continueAsGuest } = useAuth()
   const userId = user?.id ?? null
 
-  const { tasks, tasksLoading, addTask, updateTask, toggleTask, deleteTask, lastDeleted, undoDelete, clearUndo, addSubtask, toggleSubtask, deleteSubtask, reorderTasks, importTasks, logTime } = useTasks(mode === 'user' ? userId : null)
+  const { tasks, tasksLoading, addTask, updateTask, toggleTask, deleteTask, clearList, lastDeleted, undoDelete, clearUndo, addSubtask, toggleSubtask, deleteSubtask, reorderTasks, importTasks, logTime } = useTasks(mode === 'user' ? userId : null)
   const { isDark, toggleTheme } = useTheme()
   const { accent, setAccent } = useAccentColor()
   const { lists, addList, deleteList } = useLists(mode === 'user' ? userId : null)
@@ -58,6 +58,7 @@ export default function App() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [logProgressGoal, setLogProgressGoal] = useState<Goal | null>(null)
+  const [clearingListId, setClearingListId] = useState<string | null>(null)
   const [creatingList, setCreatingList] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [newListColor, setNewListColor] = useState(LIST_COLORS[0])
@@ -354,7 +355,7 @@ export default function App() {
             <div key={list.id} className="flex items-center group/list">
               <button
                 type="button"
-                onClick={() => setActiveListId(list.id)}
+                onClick={() => { setActiveListId(list.id); setClearingListId(null) }}
                 className={`flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 ${
                   activeListId === list.id
                     ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium'
@@ -367,16 +368,32 @@ export default function App() {
                 </span>
                 <span className="text-xs text-gray-400 dark:text-gray-500">{listTaskCounts[list.id] ?? 0}</span>
               </button>
-              <button
-                type="button"
-                onClick={() => { if (activeListId === list.id) setActiveListId(null); deleteList(list.id) }}
-                aria-label={`Delete list ${list.name}`}
-                className="opacity-0 group-hover/list:opacity-100 transition-opacity text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 pr-1 focus:outline-none focus:opacity-100 flex-shrink-0"
-              >
-                <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3" aria-hidden="true">
-                  <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
+              {clearingListId === list.id ? (
+                <div className="flex items-center gap-1 pr-1 flex-shrink-0">
+                  <span className="text-xs text-red-400">Clear?</span>
+                  <button type="button" onClick={() => { clearList(list.id); setClearingListId(null) }}
+                    className="text-xs text-red-400 hover:text-red-600 font-medium focus:outline-none">Yes</button>
+                  <button type="button" onClick={() => setClearingListId(null)}
+                    className="text-xs text-gray-400 hover:text-gray-600 focus:outline-none">No</button>
+                </div>
+              ) : (
+                <div className="opacity-0 group-hover/list:opacity-100 transition-opacity flex items-center gap-1 pr-1 flex-shrink-0">
+                  <button type="button" onClick={() => setClearingListId(list.id)}
+                    aria-label={`Clear list ${list.name}`}
+                    className="text-gray-300 hover:text-orange-400 dark:text-gray-600 dark:hover:text-orange-400 focus:outline-none focus:opacity-100">
+                    <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3" aria-hidden="true">
+                      <path d="M2 3h8M4 3V2h4v1M5 5v3M7 5v3M3 3l.5 6.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5L9 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <button type="button" onClick={() => { if (activeListId === list.id) setActiveListId(null); deleteList(list.id) }}
+                    aria-label={`Delete list ${list.name}`}
+                    className="text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 focus:outline-none focus:opacity-100">
+                    <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3" aria-hidden="true">
+                      <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 
@@ -901,16 +918,29 @@ export default function App() {
               ))}
               {lists.map(list => (
                 <div key={list.id} className="flex items-center group/list">
-                  <button type="button" onClick={() => { setActiveListId(list.id); if (view === 'goals') setView('list'); setMobileMenuOpen(false) }} className={`flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none ${activeListId === list.id && view !== 'goals' ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                  <button type="button" onClick={() => { setActiveListId(list.id); if (view === 'goals') setView('list'); setMobileMenuOpen(false); setClearingListId(null) }} className={`flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none ${activeListId === list.id && view !== 'goals' ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
                     <span className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: list.color }} aria-hidden="true" />
                       {list.name}
                     </span>
                     <span className="text-xs text-gray-400">{listTaskCounts[list.id] ?? 0}</span>
                   </button>
-                  <button type="button" onClick={() => { if (activeListId === list.id) setActiveListId(null); deleteList(list.id) }} aria-label={`Delete list ${list.name}`} className="opacity-0 group-hover/list:opacity-100 transition-opacity text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 pr-1 focus:outline-none focus:opacity-100 flex-shrink-0">
-                    <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3" aria-hidden="true"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-                  </button>
+                  {clearingListId === list.id ? (
+                    <div className="flex items-center gap-1 pr-1 flex-shrink-0">
+                      <span className="text-xs text-red-400">Clear?</span>
+                      <button type="button" onClick={() => { clearList(list.id); setClearingListId(null) }} className="text-xs text-red-400 hover:text-red-600 font-medium focus:outline-none">Yes</button>
+                      <button type="button" onClick={() => setClearingListId(null)} className="text-xs text-gray-400 hover:text-gray-600 focus:outline-none">No</button>
+                    </div>
+                  ) : (
+                    <div className="opacity-0 group-hover/list:opacity-100 transition-opacity flex items-center gap-1 pr-1 flex-shrink-0">
+                      <button type="button" onClick={() => setClearingListId(list.id)} aria-label={`Clear list ${list.name}`} className="text-gray-300 hover:text-orange-400 dark:text-gray-600 dark:hover:text-orange-400 focus:outline-none focus:opacity-100">
+                        <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3" aria-hidden="true"><path d="M2 3h8M4 3V2h4v1M5 5v3M7 5v3M3 3l.5 6.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5L9 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      </button>
+                      <button type="button" onClick={() => { if (activeListId === list.id) setActiveListId(null); deleteList(list.id) }} aria-label={`Delete list ${list.name}`} className="text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 focus:outline-none focus:opacity-100">
+                        <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3" aria-hidden="true"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
               {creatingList && (
