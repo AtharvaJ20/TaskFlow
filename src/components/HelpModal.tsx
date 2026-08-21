@@ -154,6 +154,43 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    heading: 'Goals',
+    icon: 'M12 3a9 9 0 1 0 0 18A9 9 0 0 0 12 3zm0 5v4m0 0a3 3 0 1 1 0 6 3 3 0 0 1 0-6',
+    color: 'text-purple-500',
+    items: [
+      {
+        title: 'Create a goal',
+        description: 'Click Goals in the sidebar, then "New goal". Give it a title, an optional description, a deadline date, and a colour. Goals appear in the sidebar with a live mini progress bar.',
+        example: '"Launch MVP" → deadline Dec 31 → colour indigo → Create. The goal appears in the sidebar ready to link tasks to.',
+      },
+      {
+        title: 'Link a task to a goal',
+        description: 'When adding a task, use the Goal dropdown in the quick-add bar to attach it to a goal. You can also open any existing task and set the Goal field in the detail panel.',
+        example: '"Write landing page copy" → Goal: "Launch MVP" → Add. The task now counts toward that goal\'s progress.',
+      },
+      {
+        title: 'Progress dashboard',
+        description: 'Click Goals in the sidebar to open the Goals dashboard. Each goal shows a progress ring (% complete), status badge, days remaining, and projected finish date.',
+        example: 'Goal at 60% with 10 days left and a velocity of 2 tasks/day — the card shows "On track" and projects you\'ll finish 3 days early.',
+      },
+      {
+        title: 'Status badges',
+        description: 'Each goal card automatically calculates your status based on current velocity vs what\'s needed to hit the deadline. On track · At risk · Overdue · Complete.',
+        example: '"At risk" means your last 7-day completion rate is too slow to finish before the deadline. Speed up or move the deadline.',
+      },
+      {
+        title: 'Projected finish date',
+        description: 'Calculated from your 7-day completion velocity: remaining tasks ÷ daily rate = days to finish. Updates every time you complete a task.',
+        example: '8 tasks left, completing 2 per day → projected finish in 4 days. Complete 3 tasks today → projection moves forward by a day.',
+      },
+      {
+        title: 'Edit or delete a goal',
+        description: 'Click the pencil ✏ icon on any goal card in the dashboard to edit its title, description, deadline, or colour. Delete from the same modal.',
+        example: 'Deadline moved to next month? Click ✏ on the goal card → change the date → Save. All linked tasks are unaffected.',
+      },
+    ],
+  },
+  {
     heading: 'Focus Mode (Pomodoro)',
     icon: 'M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
     color: 'text-red-500',
