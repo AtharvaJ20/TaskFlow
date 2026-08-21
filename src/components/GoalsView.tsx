@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { differenceInDays, format, parseISO } from 'date-fns'
+import { differenceInDays, endOfDay, format, parseISO } from 'date-fns'
 import type { Goal, Task, GoalProgressEntry } from '../types/task'
 
 interface GoalsViewProps {
@@ -94,9 +94,11 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
 }) {
   const [showTasks, setShowTasks] = useState(false)
 
+  const todayEnd = endOfDay(new Date())
   const linked = useMemo(() => tasks.filter(t => t.goalId === goal.id), [tasks, goal.id])
   const done = linked.filter(t => t.completed).length
-  const total = linked.length
+  // Exclude future-dated tasks from denominator — they haven't been "due" yet
+  const total = linked.filter(t => !t.dueDate || parseISO(t.dueDate) <= todayEnd).length
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
 
   const daysLeft = differenceInDays(parseISO(goal.deadline), new Date())

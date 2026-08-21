@@ -180,8 +180,10 @@ export default function App() {
       if (range === 0) return 0
       return Math.max(0, Math.min(100, Math.round(((latest.value - start) / range) * 100)))
     }
-    const total = tasks.filter(t => t.goalId === goal.id).length
-    const done = tasks.filter(t => t.goalId === goal.id && t.completed).length
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
+    const linked = tasks.filter(t => t.goalId === goal.id)
+    const done = linked.filter(t => t.completed).length
+    const total = linked.filter(t => !t.dueDate || new Date(t.dueDate) <= todayEnd).length
     return total > 0 ? Math.round((done / total) * 100) : 0
   }
 
