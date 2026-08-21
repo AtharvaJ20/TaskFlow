@@ -44,9 +44,12 @@ export function useFilters(): UseFiltersReturn {
   const applyFilters = useCallback(
     (tasks: Task[]): Task[] => {
       // 1. Completion status
+      // Hide future instances of recurring tasks — they appear on their due date
+      const todayEnd = endOfDay(new Date())
       let result = tasks.filter((task) => {
-        if (filter === 'active') return !task.completed
         if (filter === 'completed') return task.completed
+        if (task.recurrence && task.dueDate && parseISO(task.dueDate) > todayEnd) return false
+        if (filter === 'active') return !task.completed
         return true
       })
 
