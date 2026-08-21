@@ -1,5 +1,13 @@
 export type Priority = 'low' | 'medium' | 'high'
 
+export interface GoalProgressEntry {
+  id: string
+  goalId: string
+  value: number
+  note?: string
+  loggedAt: string  // ISO timestamp
+}
+
 export interface Goal {
   id: string
   title: string
@@ -7,6 +15,10 @@ export interface Goal {
   deadline: string   // YYYY-MM-DD
   color: string      // hex
   createdAt: string
+  goalType: 'task' | 'metric'
+  startValue?: number
+  targetValue?: number
+  unit?: string
 }
 
 export interface TaskList {

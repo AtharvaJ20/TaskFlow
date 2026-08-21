@@ -24,6 +24,10 @@ interface GoalRow {
   deadline: string
   color: string
   created_at: string
+  goal_type: string | null
+  start_value: number | null
+  target_value: number | null
+  unit: string | null
 }
 
 function fromRow(row: GoalRow): Goal {
@@ -34,13 +38,19 @@ function fromRow(row: GoalRow): Goal {
     deadline: row.deadline,
     color: row.color,
     createdAt: row.created_at,
+    goalType: (row.goal_type as 'task' | 'metric') ?? 'task',
+    startValue: row.start_value ?? undefined,
+    targetValue: row.target_value ?? undefined,
+    unit: row.unit ?? undefined,
   }
 }
 
 function load(): Goal[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as Goal[]) : []
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as Goal[]
+    return parsed.map(g => ({ ...g, goalType: g.goalType ?? ('task' as const) }))
   } catch {
     return []
   }
@@ -110,6 +120,10 @@ export function useGoals(userId: string | null) {
         deadline: goal.deadline,
         color: goal.color,
         created_at: goal.createdAt,
+        goal_type: goal.goalType,
+        start_value: goal.startValue ?? null,
+        target_value: goal.targetValue ?? null,
+        unit: goal.unit ?? null,
       }).then(({ error }) => {
         if (error) console.error('addGoal:', error.message)
       })
@@ -125,6 +139,9 @@ export function useGoals(userId: string | null) {
       if ('description' in changes) patch.description = changes.description ?? null
       if ('deadline' in changes) patch.deadline = changes.deadline
       if ('color' in changes) patch.color = changes.color
+      if ('startValue' in changes) patch.start_value = changes.startValue ?? null
+      if ('targetValue' in changes) patch.target_value = changes.targetValue ?? null
+      if ('unit' in changes) patch.unit = changes.unit ?? null
       supabase.from('goals').update(patch).eq('id', id).then(({ error }) => {
         if (error) console.error('updateGoal:', error.message)
       })

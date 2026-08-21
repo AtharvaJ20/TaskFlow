@@ -22,14 +22,16 @@ import { useAccentColor, ACCENT_OPTIONS } from './hooks/useAccentColor'
 import type { AccentColor } from './hooks/useAccentColor'
 import { useLists, LIST_COLORS } from './hooks/useLists'
 import { useGoals } from './hooks/useGoals'
+import { useGoalProgress } from './hooks/useGoalProgress'
 import GoalModal from './components/GoalModal'
 import GoalsView from './components/GoalsView'
+import LogProgressModal from './components/LogProgressModal'
 import { exportJSON, exportCSV } from './utils/exportTasks'
 import { importFromJSON, importFromCSV } from './utils/importTasks'
 import SoundSettingsPanel from './components/SoundSettingsPanel'
 import HelpModal from './components/HelpModal'
 import { type SoundSettings, loadSoundSettingsFull, saveSoundSettings } from './utils/soundSettings'
-import type { Task, Filter, Goal } from './types/task'
+import type { Task, Filter, Goal, GoalProgressEntry } from './types/task'
 
 const FILTER_TABS: { value: Filter; label: string; icon: string }[] = [
   { value: 'all', label: 'All Tasks', icon: 'M3 7h18M3 12h18M3 17h18' },
@@ -46,6 +48,7 @@ export default function App() {
   const { accent, setAccent } = useAccentColor()
   const { lists, addList, deleteList } = useLists(mode === 'user' ? userId : null)
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals(mode === 'user' ? userId : null)
+  const { entries, addEntry } = useGoalProgress(mode === 'user' ? userId : null)
   const { filter, setFilter, sortBy, setSortBy, search, setSearch, tagFilter, setTagFilter, dueDateFilter, setDueDateFilter, priorityFilter, setPriorityFilter, activeFilterCount, clearAdvancedFilters, applyFilters } = useFilters()
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -53,6 +56,7 @@ export default function App() {
   const [activeListId, setActiveListId] = useState<string | null>(null)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [showGoalModal, setShowGoalModal] = useState(false)
+  const [logProgressGoal, setLogProgressGoal] = useState<Goal | null>(null)
   const [creatingList, setCreatingList] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [newListColor, setNewListColor] = useState(LIST_COLORS[0])
@@ -164,6 +168,22 @@ export default function App() {
   }, [deleteTask])
 
   const filterLabel = view === 'goals' ? 'Goals' : (FILTER_TABS.find(t => t.value === filter)?.label ?? 'Tasks')
+
+  function getGoalPct(goal: Goal): number {
+    if (goal.goalType === 'metric') {
+      const goalEntries = entries.filter((e: GoalProgressEntry) => e.goalId === goal.id)
+      if (goalEntries.length === 0) return 0
+      const latest = goalEntries.reduce((a: GoalProgressEntry, b: GoalProgressEntry) => a.loggedAt > b.loggedAt ? a : b)
+      const start = goal.startValue ?? 0
+      const target = goal.targetValue ?? 100
+      const range = target - start
+      if (range === 0) return 0
+      return Math.max(0, Math.min(100, Math.round(((latest.value - start) / range) * 100)))
+    }
+    const total = tasks.filter(t => t.goalId === goal.id).length
+    const done = tasks.filter(t => t.goalId === goal.id && t.completed).length
+    return total > 0 ? Math.round((done / total) * 100) : 0
+  }
 
   // Show auth screen when not yet signed in and not using guest mode
   if (mode === 'checking') {
@@ -445,9 +465,7 @@ export default function App() {
 
           {/* Per-goal rows with mini progress */}
           {goals.map(goal => {
-            const total = tasks.filter(t => t.goalId === goal.id).length
-            const done = tasks.filter(t => t.goalId === goal.id && t.completed).length
-            const pct = total > 0 ? Math.round((done / total) * 100) : 0
+            const pct = getGoalPct(goal)
             return (
               <button
                 key={goal.id}
@@ -686,10 +704,12 @@ export default function App() {
               <GoalsView
                 goals={goals}
                 tasks={tasks}
+                entries={entries}
                 onEditGoal={(goal) => { setEditingGoal(goal); setShowGoalModal(true) }}
                 onNewGoal={() => { setEditingGoal(null); setShowGoalModal(true) }}
                 onTaskClick={(task: Task) => setSelectedTaskId(task.id)}
                 onToggleTask={toggleTask}
+                onLogProgress={(goal) => setLogProgressGoal(goal)}
               />
             ) : view === 'calendar' ? (
               <CalendarView
@@ -748,6 +768,19 @@ export default function App() {
           onSave={data => editingGoal ? updateGoal(editingGoal.id, data) : addGoal(data)}
           onDelete={deleteGoal}
           onClose={() => setShowGoalModal(false)}
+        />
+      )}
+
+      {logProgressGoal && (
+        <LogProgressModal
+          goal={logProgressGoal}
+          currentValue={(() => {
+            const goalEntries = entries.filter((e: GoalProgressEntry) => e.goalId === logProgressGoal.id)
+            if (goalEntries.length === 0) return logProgressGoal.startValue ?? 0
+            return goalEntries.reduce((a: GoalProgressEntry, b: GoalProgressEntry) => a.loggedAt > b.loggedAt ? a : b).value
+          })()}
+          onSave={(value, note) => addEntry(logProgressGoal.id, value, note)}
+          onClose={() => setLogProgressGoal(null)}
         />
       )}
 
@@ -931,9 +964,7 @@ export default function App() {
                 <span className="text-xs text-gray-400 dark:text-gray-500">{goals.length}</span>
               </button>
               {goals.map(goal => {
-                const total = tasks.filter(t => t.goalId === goal.id).length
-                const done = tasks.filter(t => t.goalId === goal.id && t.completed).length
-                const pct = total > 0 ? Math.round((done / total) * 100) : 0
+                const pct = getGoalPct(goal)
                 return (
                   <button
                     key={goal.id}
