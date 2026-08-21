@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { differenceInDays, format, parseISO } from 'date-fns'
+import { differenceInDays, format, isFuture, isToday, parseISO, startOfDay } from 'date-fns'
 import type { Goal, Task, GoalProgressEntry } from '../types/task'
 import { computeExpectedTotal } from '../utils/goalProgress'
 
@@ -224,19 +224,26 @@ function TaskGoalCard({ goal, tasks, onEdit, onTaskClick, onToggleTask }: {
               </div>
             ))}
             {/* Active recurring patterns — one row per unique pattern */}
-            {activeRecurring.map(({ representative, completedCount, activeTask }) => (
-              <div key={`${representative.title}-${representative.recurrence?.frequency}`} className="flex items-center gap-2.5 py-1">
-                <button type="button" onClick={() => onToggleTask(activeTask!.id)} aria-label="Mark complete"
-                  className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 hover:border-accent-400 transition-colors focus:outline-none" />
-                <button type="button" onClick={() => onTaskClick(activeTask!)}
-                  className="flex-1 text-sm text-gray-700 dark:text-gray-300 text-left truncate hover:text-accent-600 dark:hover:text-accent-400 transition-colors focus:outline-none">
-                  {representative.title}
-                </button>
-                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                  {representative.recurrence?.frequency} · {completedCount} done
-                </span>
-              </div>
-            ))}
+            {activeRecurring.map(({ representative, completedCount, activeTask }) => {
+              const dueDay = activeTask!.dueDate ? startOfDay(parseISO(activeTask!.dueDate)) : null
+              const isFutureTask = dueDay ? (isFuture(dueDay) && !isToday(dueDay)) : false
+              return (
+                <div key={`${representative.title}-${representative.recurrence?.frequency}`} className="flex items-center gap-2.5 py-1">
+                  {isFutureTask
+                    ? <div className="w-4 h-4 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex-shrink-0" />
+                    : <button type="button" onClick={() => onToggleTask(activeTask!.id)} aria-label="Mark complete"
+                        className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 hover:border-accent-400 transition-colors focus:outline-none" />
+                  }
+                  <button type="button" onClick={() => onTaskClick(activeTask!)}
+                    className="flex-1 text-sm text-gray-700 dark:text-gray-300 text-left truncate hover:text-accent-600 dark:hover:text-accent-400 transition-colors focus:outline-none">
+                    {representative.title}
+                  </button>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+                    {representative.recurrence?.frequency} · {completedCount} done{isFutureTask ? ' · upcoming' : ''}
+                  </span>
+                </div>
+              )
+            })}
             {/* Completed section */}
             {(completedNonRecurring.length > 0 || completedRecurring.length > 0) && (
               <div className="mt-1 pt-1 border-t border-gray-100 dark:border-gray-700">
