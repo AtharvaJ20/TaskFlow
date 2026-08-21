@@ -113,11 +113,18 @@ export default function App() {
 
   const filteredTasks = useMemo(() => applyFilters(listScopedTasks), [applyFilters, listScopedTasks])
 
-  const taskCounts = useMemo(() => ({
-    all:       listScopedTasks.length,
-    active:    listScopedTasks.filter(t => !t.completed).length,
-    completed: listScopedTasks.filter(t => t.completed).length,
-  }), [listScopedTasks])
+  const taskCounts = useMemo(() => {
+    // Exclude future recurring instances so counts match what the list displays
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
+    const countable = listScopedTasks.filter(t =>
+      !(t.recurrence && t.dueDate && new Date(t.dueDate) > todayEnd)
+    )
+    return {
+      all:       countable.length,
+      active:    countable.filter(t => !t.completed).length,
+      completed: countable.filter(t => t.completed).length,
+    }
+  }, [listScopedTasks])
 
   const listTaskCounts = useMemo(() => {
     const counts: Record<string, number> = { inbox: tasks.filter(t => !t.listId).length }
@@ -125,7 +132,7 @@ export default function App() {
     return counts
   }, [tasks, lists])
 
-  const pct = listScopedTasks.length > 0 ? Math.round((taskCounts.completed / listScopedTasks.length) * 100) : 0
+  const pct = taskCounts.all > 0 ? Math.round((taskCounts.completed / taskCounts.all) * 100) : 0
 
   function handleCreateList() {
     const name = newListName.trim()
