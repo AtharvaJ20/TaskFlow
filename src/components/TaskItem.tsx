@@ -179,6 +179,14 @@ export default function TaskItem({ task, onToggle, onDelete, onUpdate, onOpenMod
 
       {/* Content */}
       <div className="flex-1 min-w-0">
+        {task.pinned && (
+          <span className="inline-flex items-center gap-0.5 text-xs font-medium text-accent-600 dark:text-accent-400 mb-0.5">
+            <svg viewBox="0 0 12 12" fill="currentColor" className="w-2.5 h-2.5" aria-hidden="true">
+              <path d="M7 1.5L10.5 5l-1.5.4L7 3.9 6.6 1.5zM4.5 4l3 3-.75 2.6L4.1 7.1M1.5 10.5l2.6-2.6" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </svg>
+            Pinned
+          </span>
+        )}
         {isEditing ? (
           <input
             autoFocus
@@ -372,6 +380,23 @@ export default function TaskItem({ task, onToggle, onDelete, onUpdate, onOpenMod
           <span className="sm:hidden">Focus</span>
         </button>
       )}
+
+      {/* Pin button */}
+      <button
+        type="button"
+        onClick={() => onUpdate(task.id, { pinned: !task.pinned })}
+        aria-label={task.pinned ? 'Unpin task' : 'Pin task'}
+        title={task.pinned ? 'Unpin' : 'Pin to top'}
+        className={`transition-opacity flex-shrink-0 mt-0.5 focus:outline-none ${
+          task.pinned
+            ? 'opacity-100 text-accent-500 dark:text-accent-400'
+            : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-accent-500'
+        }`}
+      >
+        <svg viewBox="0 0 16 16" fill={task.pinned ? 'currentColor' : 'none'} className="w-3.5 h-3.5" aria-hidden="true">
+          <path d="M9.5 2L14 6.5l-2 .5-3-3-.5-2zM6 5.5l4 4-1 3.5L5.5 9.5M2 14l3.5-3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
 
       {/* Delete button */}
       <button

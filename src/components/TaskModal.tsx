@@ -477,13 +477,30 @@ export default function TaskModal({ task, onClose, onUpdate, onDelete, onAddSubt
 
         {/* Footer */}
         <div className="border-t border-gray-100 dark:border-gray-800 px-6 py-4 flex justify-between items-center">
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="text-red-500 hover:text-red-700 dark:hover:text-red-400 text-sm font-medium transition-colors"
-          >
-            Delete
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => { onUpdate(task.id, { pinned: !task.pinned }); onClose() }}
+              aria-pressed={task.pinned}
+              className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                task.pinned
+                  ? 'text-accent-600 dark:text-accent-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400'
+              }`}
+            >
+              <svg viewBox="0 0 16 16" fill={task.pinned ? 'currentColor' : 'none'} className="w-4 h-4" aria-hidden="true">
+                <path d="M9.5 2L14 6.5l-2 .5-3-3-.5-2zM6 5.5l4 4-1 3.5L5.5 9.5M2 14l3.5-3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {task.pinned ? 'Pinned' : 'Pin'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="text-red-500 hover:text-red-700 dark:hover:text-red-400 text-sm font-medium transition-colors"
+            >
+              Delete
+            </button>
+          </div>
           <div className="flex gap-2">
             <button
               type="button"

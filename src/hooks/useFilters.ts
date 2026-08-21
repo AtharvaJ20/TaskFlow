@@ -88,8 +88,10 @@ export function useFilters(): UseFiltersReturn {
         })
       }
 
-      // 6. Sort
+      // 6. Sort (pinned always first)
       result = [...result].sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1
+        if (!a.pinned && b.pinned) return 1
         if (sortBy === 'createdAt') {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         }

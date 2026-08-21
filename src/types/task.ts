@@ -37,6 +37,7 @@ export interface Task {
   createdAt: string      // ISO 8601 timestamp
   completedAt?: string   // set when completed flips to true
   timeLogged?: number    // total seconds focused via Focus Mode
+  pinned?: boolean
 }
 
 export interface NewTaskInput {

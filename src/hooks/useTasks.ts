@@ -48,6 +48,7 @@ interface TaskRow {
   created_at: string
   completed_at: string | null
   time_logged: number
+  pinned: boolean | null
 }
 
 function fromRow(row: TaskRow): Task {
@@ -65,6 +66,7 @@ function fromRow(row: TaskRow): Task {
     createdAt: row.created_at,
     completedAt: row.completed_at ?? undefined,
     timeLogged: row.time_logged ?? 0,
+    pinned: row.pinned ?? false,
   }
 }
 
@@ -84,6 +86,7 @@ function toRow(task: Task, userId: string): TaskRow {
     created_at: task.createdAt,
     completed_at: task.completedAt ?? null,
     time_logged: task.timeLogged ?? 0,
+    pinned: task.pinned ?? null,
   }
 }
 
@@ -100,6 +103,7 @@ function dbChanges(changes: Partial<Omit<Task, 'id' | 'createdAt'>>): Record<str
   if ('listId' in changes) out.list_id = changes.listId ?? null
   if ('completedAt' in changes) out.completed_at = changes.completedAt ?? null
   if ('timeLogged' in changes) out.time_logged = changes.timeLogged ?? 0
+  if ('pinned' in changes) out.pinned = changes.pinned ?? null
   return out
 }
 
