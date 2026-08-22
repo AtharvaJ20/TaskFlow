@@ -43,7 +43,7 @@ const NO_LISTS: TaskList[] = []
 const A_DATE = '2026-08-24' // a Monday (getDay()===1)
 
 function renderInput(onAdd: (i: NewTaskInput) => void = vi.fn()) {
-  render(<TaskInput onAdd={onAdd} lists={NO_LISTS} activeListId={null} />)
+  render(<TaskInput onAdd={onAdd} lists={NO_LISTS} goals={[]} activeListId={null} />)
 }
 
 async function openRepeatPanel() {

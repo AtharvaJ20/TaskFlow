@@ -5,7 +5,7 @@ import TaskInput from '../../components/TaskInput'
 
 function setup() {
   const onAdd = vi.fn()
-  render(<TaskInput onAdd={onAdd} lists={[]} />)
+  render(<TaskInput onAdd={onAdd} lists={[]} goals={[]} />)
   return { onAdd, titleInput: screen.getByRole('textbox', { name: /new task title/i }) }
 }
 

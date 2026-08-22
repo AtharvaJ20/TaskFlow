@@ -1,14 +1,49 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../App'
+
+// Mock supabase auth so the app transitions out of 'checking' mode immediately.
+// Without this, getSession() never resolves in jsdom and the app stays on the
+// loading spinner forever, making all task-input queries fail.
+vi.mock('../../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      }),
+      updateUser: vi.fn().mockResolvedValue({}),
+    },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      then: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }),
+    channel: vi.fn().mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn(),
+    }),
+    removeChannel: vi.fn(),
+  },
+}))
 
 beforeEach(() => {
   localStorage.clear()
+  // Enter guest mode so the app renders the task list instead of the auth screen
+  localStorage.setItem('taskflow-guest', '1')
+  // Mark tour as seen so the welcome overlay doesn't block the task input
+  localStorage.setItem('taskflow-toured', '1')
 })
 
+// findByRole waits for async state transitions (checking → guest) before querying
 async function addTask(user: ReturnType<typeof userEvent.setup>, title: string): Promise<void> {
-  const input = screen.getByRole('textbox', { name: /new task title/i })
+  const input = await screen.findByRole('textbox', { name: /new task title/i })
   await user.clear(input)
   await user.type(input, title)
   await user.click(screen.getByRole('button', { name: /^add$/i }))
@@ -31,7 +66,7 @@ describe('App – task lifecycle integration', () => {
     await addTask(user, 'Task A')
     await addTask(user, 'Task B')
 
-    expect(screen.getByText(/2 active/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/2 active/i)[0]).toBeInTheDocument()
   })
 
   it('completing a task removes it from the Active filter view', async () => {
@@ -43,7 +78,7 @@ describe('App – task lifecycle integration', () => {
     const checkbox = screen.getByRole('checkbox', { name: /mark as complete/i })
     await user.click(checkbox)
 
-    await user.click(screen.getByRole('button', { name: /active/i }))
+    await user.click(screen.getAllByRole('button', { name: /^active/i })[0])
 
     expect(screen.queryByRole('button', { name: /edit task: finish report/i })).not.toBeInTheDocument()
   })
@@ -54,7 +89,6 @@ describe('App – task lifecycle integration', () => {
 
     await addTask(user, 'Walk the dog')
 
-    // Reveal and click the delete button
     const deleteBtn = screen.getByRole('button', { name: /delete task/i })
     await user.click(deleteBtn)
 
