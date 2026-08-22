@@ -263,6 +263,7 @@ export function useTasks(userId: string | null) {
           id: uuidv4(),
           completed: false,
           completedAt: undefined,
+          timeLogged: 0,
           dueDate: nextDueStr,
           createdAt: new Date().toISOString(),
           subtasks: (task.subtasks ?? []).map(s => ({ ...s, completed: false })),

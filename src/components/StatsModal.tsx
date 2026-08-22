@@ -28,8 +28,12 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 
 export default function StatsModal({ tasks, onClose }: StatsModalProps) {
   const stats = useMemo(() => {
-    const total = tasks.length
-    const completed = tasks.filter(t => t.completed).length
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
+    const countable = tasks.filter(t =>
+      !(t.recurrence && t.dueDate && new Date(t.dueDate) > todayEnd)
+    )
+    const total = countable.length
+    const completed = countable.filter(t => t.completed).length
     const active = total - completed
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0
 
@@ -46,20 +50,20 @@ export default function StatsModal({ tasks, onClose }: StatsModalProps) {
 
     // Priority breakdown
     const byPriority = { high: 0, medium: 0, low: 0 }
-    tasks.filter(t => !t.completed).forEach(t => { byPriority[t.priority]++ })
+    countable.filter(t => !t.completed).forEach(t => { byPriority[t.priority]++ })
 
     // Due today
-    const dueToday = tasks.filter(t => t.dueDate && !t.completed && isToday(parseISO(t.dueDate))).length
+    const dueToday = countable.filter(t => t.dueDate && !t.completed && isToday(parseISO(t.dueDate))).length
 
     // Overdue
-    const overdue = tasks.filter(t => {
+    const overdue = countable.filter(t => {
       if (!t.dueDate || t.completed) return false
       return parseISO(t.dueDate) < new Date() && !isToday(parseISO(t.dueDate))
     }).length
 
     // Subtask completion
-    const subtaskTotal = tasks.flatMap(t => t.subtasks ?? []).length
-    const subtaskDone = tasks.flatMap(t => t.subtasks ?? []).filter(s => s.completed).length
+    const subtaskTotal = countable.flatMap(t => t.subtasks ?? []).length
+    const subtaskDone = countable.flatMap(t => t.subtasks ?? []).filter(s => s.completed).length
 
     // Time tracking
     const totalTimeSecs = tasks.reduce((acc, t) => acc + (t.timeLogged ?? 0), 0)

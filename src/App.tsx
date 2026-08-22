@@ -128,8 +128,10 @@ export default function App() {
   }, [listScopedTasks])
 
   const listTaskCounts = useMemo(() => {
-    const counts: Record<string, number> = { inbox: tasks.filter(t => !t.listId).length }
-    lists.forEach(l => { counts[l.id] = tasks.filter(t => t.listId === l.id).length })
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
+    const visible = (t: Task) => !(t.recurrence && t.dueDate && new Date(t.dueDate) > todayEnd)
+    const counts: Record<string, number> = { inbox: tasks.filter(t => !t.listId && visible(t)).length }
+    lists.forEach(l => { counts[l.id] = tasks.filter(t => t.listId === l.id && visible(t)).length })
     return counts
   }, [tasks, lists])
 
@@ -242,7 +244,7 @@ export default function App() {
           <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Progress</p>
           <div className="flex items-end justify-between mb-2">
             <span className="text-3xl font-bold text-gray-900 dark:text-white">{pct}%</span>
-            <span className="text-sm text-gray-400 dark:text-gray-500 mb-1">{taskCounts.completed}/{tasks.length}</span>
+            <span className="text-sm text-gray-400 dark:text-gray-500 mb-1">{taskCounts.completed}/{taskCounts.all}</span>
           </div>
           <div
             className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden"
@@ -250,7 +252,7 @@ export default function App() {
             aria-valuenow={pct}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label={`${taskCounts.completed} of ${tasks.length} tasks completed`}
+            aria-label={`${taskCounts.completed} of ${taskCounts.all} tasks completed`}
           >
             <div
               className="h-full bg-accent-500 rounded-full motion-safe:transition-all motion-safe:duration-500"
@@ -328,7 +330,7 @@ export default function App() {
               </svg>
               All lists
             </span>
-            <span className="text-xs text-gray-400 dark:text-gray-500">{tasks.length}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{taskCounts.all}</span>
           </button>
 
           {/* Inbox */}
@@ -872,7 +874,7 @@ export default function App() {
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
               <div className="flex items-end justify-between mb-2">
                 <span className="text-2xl font-bold text-gray-900 dark:text-white">{pct}%</span>
-                <span className="text-sm text-gray-400 mb-0.5">{taskCounts.completed}/{tasks.length}</span>
+                <span className="text-sm text-gray-400 mb-0.5">{taskCounts.completed}/{taskCounts.all}</span>
               </div>
               <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div className="h-full bg-accent-500 rounded-full motion-safe:transition-all" style={{ width: `${pct}%` }} />
@@ -924,7 +926,7 @@ export default function App() {
                   <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
                   All lists
                 </span>
-                <span className="text-xs text-gray-400">{tasks.length}</span>
+                <span className="text-xs text-gray-400">{taskCounts.all}</span>
               </button>
               <div className="flex items-center group/list">
                 <button type="button" onClick={() => { setActiveListId('inbox'); if (view === 'goals') setView('list'); setMobileMenuOpen(false); setClearingListId(null) }}
