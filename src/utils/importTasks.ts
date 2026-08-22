@@ -21,22 +21,44 @@ export function importFromJSON(json: string): Task[] {
   return valid.map(t => ({ ...t, subtasks: t.subtasks ?? [] }))
 }
 
+function parseCSVLine(line: string): string[] {
+  const fields: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { current += '"'; i++ }
+        else inQuotes = false
+      } else {
+        current += ch
+      }
+    } else {
+      if (ch === '"') inQuotes = true
+      else if (ch === ',') { fields.push(current); current = '' }
+      else current += ch
+    }
+  }
+  fields.push(current)
+  return fields
+}
+
 export function importFromCSV(csv: string): Partial<Task>[] {
   const lines = csv.trim().split('\n')
   if (lines.length < 2) throw new Error('CSV has no data rows')
   // Skip header row; columns: Title,Status,Priority,Due Date,Tags,Created At,Completed At
   return lines.slice(1).map(line => {
-    const cols = line.match(/("(?:[^"]|"")*"|[^,]*)/g) ?? []
-    const unquote = (s: string) => s.replace(/^"|"$/g, '').replace(/""/g, '"').trim()
-    const title = unquote(cols[0] ?? '')
+    const cols = parseCSVLine(line)
+    const title = (cols[0] ?? '').trim()
     const completed = (cols[1] ?? '').trim() === 'Completed'
     const priority = (['low', 'medium', 'high'].includes((cols[2] ?? '').trim())
       ? (cols[2] ?? '').trim()
       : 'medium') as Task['priority']
-    const dueDate = unquote(cols[3] ?? '') || undefined
-    const tagsRaw = unquote(cols[4] ?? '')
+    const dueDate = (cols[3] ?? '').trim() || undefined
+    const tagsRaw = (cols[4] ?? '').trim()
     const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []
-    const createdAt = unquote(cols[5] ?? '') || new Date().toISOString()
+    const createdAt = (cols[5] ?? '').trim() || new Date().toISOString()
     if (!title) return null
     return { title, completed, priority, dueDate, tags, createdAt, subtasks: [] } as Partial<Task>
   }).filter(Boolean) as Partial<Task>[]
