@@ -51,6 +51,22 @@ function notify(title: string, body: string) {
   else if (Notification.permission === 'default') Notification.requestPermission().then(p => { if (p === 'granted') fire() })
 }
 
+function warmUpAudio() {
+  try {
+    const ctx = new AudioContext()
+    ctx.resume().then(() => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      gain.gain.value = 0
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.001)
+      osc.onended = () => { try { ctx.close() } catch {} }
+    }).catch(() => {})
+  } catch {}
+}
+
 function clampMins(v: number) {
   return Math.max(1, Math.min(99, Math.round(v)))
 }
@@ -397,7 +413,7 @@ export default function FocusMode({ task, onClose, onComplete, onToggleSubtask, 
 
           <button
             type="button"
-            onClick={() => setRunning(r => !r)}
+            onClick={() => { if (!running) warmUpAudio(); setRunning(r => !r) }}
             aria-label={running ? 'Pause timer' : 'Start timer'}
             className="w-14 h-14 rounded-full bg-accent-600 hover:bg-accent-500 text-white flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 focus:ring-offset-gray-950"
           >
