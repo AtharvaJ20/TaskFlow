@@ -16,7 +16,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
 }
 
 const active   = makeTask({ title: 'Active',    completed: false, priority: 'low',    createdAt: '2025-01-01T00:00:00.000Z' })
-const done     = makeTask({ title: 'Done',      completed: true,  priority: 'high',   createdAt: '2025-01-02T00:00:00.000Z' })
+const done     = makeTask({ title: 'Done',      completed: true,  priority: 'high',   createdAt: '2025-01-02T00:00:00.000Z', completedAt: new Date().toISOString() })
 const withDate = makeTask({ title: 'Dated',     completed: false, priority: 'medium', createdAt: '2025-01-03T00:00:00.000Z', dueDate: '2025-06-01' })
 const noDate   = makeTask({ title: 'No date',   completed: false, priority: 'medium', createdAt: '2025-01-04T00:00:00.000Z' })
 const tagged   = makeTask({ title: 'Tagged',    completed: false, priority: 'medium', tags: ['work', 'urgent'] })
@@ -47,6 +47,27 @@ describe('useFilters – status filter', () => {
     const filtered = result.current.applyFilters(allTasks)
     expect(filtered.every(t => t.completed)).toBe(true)
     expect(filtered).toHaveLength(1)
+  })
+
+  it('hides tasks completed on a previous day from the "all" view', () => {
+    const { result } = renderHook(() => useFilters())
+
+    const completedYesterday = makeTask({
+      title: 'Old done',
+      completed: true,
+      completedAt: '2020-01-01T10:00:00.000Z',
+    })
+    const completedToday = makeTask({
+      title: 'Just done',
+      completed: true,
+      completedAt: new Date().toISOString(),
+    })
+    const notDone = makeTask({ title: 'Active' })
+
+    const filtered = result.current.applyFilters([completedYesterday, completedToday, notDone])
+    expect(filtered.map(t => t.title)).not.toContain('Old done')
+    expect(filtered.map(t => t.title)).toContain('Just done')
+    expect(filtered.map(t => t.title)).toContain('Active')
   })
 })
 

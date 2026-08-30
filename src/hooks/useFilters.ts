@@ -50,6 +50,8 @@ export function useFilters(): UseFiltersReturn {
         if (filter === 'completed') return task.completed
         if (task.recurrence && task.dueDate && parseISO(task.dueDate) > todayEnd) return false
         if (filter === 'active') return !task.completed
+        // 'all' view: hide tasks completed on a previous day so the list resets each morning
+        if (task.completed && (!task.completedAt || !isToday(parseISO(task.completedAt)))) return false
         return true
       })
 
