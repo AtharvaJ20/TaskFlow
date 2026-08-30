@@ -27,10 +27,20 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage
 
-      - name: Upload coverage report
+      # Upload LCOV so GitHub's native "Restrict code coverage" gate can read it
+      - name: Upload coverage to GitHub
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: code-coverage-report
+          path: coverage/lcov.info
+          retention-days: 14
+
+      # Keep the full HTML report as a browsable artifact
+      - name: Upload full coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
           path: coverage/
           retention-days: 14
