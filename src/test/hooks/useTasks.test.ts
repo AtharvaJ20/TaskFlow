@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useTasks } from '../../hooks/useTasks'
 import type { NewTaskInput } from '../../types/task'
@@ -222,5 +222,299 @@ describe('useTasks – deleteTask / undoDelete', () => {
     act(() => { result.current.undoDelete() })
     const titles = result.current.tasks.map(t => t.title)
     expect(titles).toContain('Task A')
+  })
+
+  it('undoDelete is a no-op when lastDeleted is null', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Task' })) })
+    act(() => { result.current.undoDelete() }) // nothing to undo
+    expect(result.current.tasks).toHaveLength(1)
+  })
+})
+
+// ── clearUndo ─────────────────────────────────────────────────────────────────
+
+describe('useTasks – clearUndo', () => {
+  it('clears lastDeleted without restoring the task', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Task' })) })
+    const id = result.current.tasks[0].id
+    act(() => { result.current.deleteTask(id) })
+    expect(result.current.lastDeleted).not.toBeNull()
+    act(() => { result.current.clearUndo() })
+    expect(result.current.lastDeleted).toBeNull()
+    expect(result.current.tasks).toHaveLength(0)
+  })
+})
+
+// ── updateTask ────────────────────────────────────────────────────────────────
+
+describe('useTasks – updateTask', () => {
+  it('updates a task field', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Old' })) })
+    const id = result.current.tasks[0].id
+    act(() => { result.current.updateTask(id, { title: 'New' }) })
+    expect(result.current.tasks[0].title).toBe('New')
+  })
+
+  it('sets completedAt when completing via updateTask', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Task' })) })
+    const id = result.current.tasks[0].id
+    act(() => { result.current.updateTask(id, { completed: true }) })
+    expect(result.current.tasks[0].completedAt).toBeDefined()
+  })
+
+  it('clears completedAt when uncompleting via updateTask', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Task' })) })
+    const id = result.current.tasks[0].id
+    act(() => { result.current.updateTask(id, { completed: true }) })
+    act(() => { result.current.updateTask(id, { completed: false }) })
+    expect(result.current.tasks[0].completedAt).toBeUndefined()
+  })
+
+  it('does not affect other tasks', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => {
+      result.current.addTask(addInput({ title: 'A' }))
+      result.current.addTask(addInput({ title: 'B' }))
+    })
+    const idA = result.current.tasks.find(t => t.title === 'A')!.id
+    act(() => { result.current.updateTask(idA, { title: 'A updated' }) })
+    expect(result.current.tasks.find(t => t.title === 'B')).toBeDefined()
+  })
+})
+
+// ── clearCompleted ────────────────────────────────────────────────────────────
+
+describe('useTasks – clearCompleted', () => {
+  it('removes all completed tasks and keeps active ones', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => {
+      result.current.addTask(addInput({ title: 'Active' }))
+      result.current.addTask(addInput({ title: 'Done' }))
+    })
+    const doneId = result.current.tasks.find(t => t.title === 'Done')!.id
+    act(() => { result.current.toggleTask(doneId) })
+    act(() => { result.current.clearCompleted() })
+    expect(result.current.tasks).toHaveLength(1)
+    expect(result.current.tasks[0].title).toBe('Active')
+  })
+
+  it('is a no-op when no tasks are completed', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Active' })) })
+    act(() => { result.current.clearCompleted() })
+    expect(result.current.tasks).toHaveLength(1)
+  })
+})
+
+// ── reorderTasks ──────────────────────────────────────────────────────────────
+
+describe('useTasks – reorderTasks', () => {
+  it('moves a task to a new position', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => {
+      result.current.addTask(addInput({ title: 'A' }))
+      result.current.addTask(addInput({ title: 'B' }))
+      result.current.addTask(addInput({ title: 'C' }))
+    })
+    // tasks = [C, B, A] (newest first)
+    act(() => { result.current.reorderTasks(0, 2) }) // move C to end
+    expect(result.current.tasks[0].title).toBe('B')
+    expect(result.current.tasks[2].title).toBe('C')
+  })
+})
+
+// ── deleteSubtask ─────────────────────────────────────────────────────────────
+
+describe('useTasks – deleteSubtask', () => {
+  it('removes the subtask from the parent task', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Parent' })) })
+    const taskId = result.current.tasks[0].id
+    act(() => { result.current.addSubtask(taskId, 'Step 1') })
+    const subId = result.current.tasks[0].subtasks[0].id
+    act(() => { result.current.deleteSubtask(taskId, subId) })
+    expect(result.current.tasks[0].subtasks).toHaveLength(0)
+  })
+
+  it('keeps other subtasks intact', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Parent' })) })
+    const taskId = result.current.tasks[0].id
+    act(() => { result.current.addSubtask(taskId, 'Step 1') })
+    act(() => { result.current.addSubtask(taskId, 'Step 2') })
+    const subId = result.current.tasks[0].subtasks[0].id
+    act(() => { result.current.deleteSubtask(taskId, subId) })
+    expect(result.current.tasks[0].subtasks).toHaveLength(1)
+    expect(result.current.tasks[0].subtasks[0].title).toBe('Step 2')
+  })
+})
+
+// ── logTime ───────────────────────────────────────────────────────────────────
+
+describe('useTasks – logTime', () => {
+  it('adds seconds to task.timeLogged', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Task' })) })
+    const id = result.current.tasks[0].id
+    act(() => { result.current.logTime(id, 300) })
+    expect(result.current.tasks[0].timeLogged).toBe(300)
+  })
+
+  it('accumulates multiple logTime calls', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Task' })) })
+    const id = result.current.tasks[0].id
+    act(() => { result.current.logTime(id, 300) })
+    act(() => { result.current.logTime(id, 120) })
+    expect(result.current.tasks[0].timeLogged).toBe(420)
+  })
+})
+
+// ── importTasks ───────────────────────────────────────────────────────────────
+
+describe('useTasks – importTasks', () => {
+  it('imports tasks with a title', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => {
+      result.current.importTasks([
+        { title: 'Imported A', completed: false, priority: 'high', tags: [], subtasks: [] },
+        { title: 'Imported B', completed: false, priority: 'low', tags: [], subtasks: [] },
+      ])
+    })
+    expect(result.current.tasks).toHaveLength(2)
+  })
+
+  it('skips entries without a title', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => {
+      result.current.importTasks([
+        { title: 'Valid' },
+        { completed: false } as Partial<import('../../types/task').Task>,
+      ])
+    })
+    expect(result.current.tasks).toHaveLength(1)
+    expect(result.current.tasks[0].title).toBe('Valid')
+  })
+
+  it('prepends imported tasks before existing ones', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Existing' })) })
+    act(() => { result.current.importTasks([{ title: 'New import' }]) })
+    expect(result.current.tasks[0].title).toBe('New import')
+    expect(result.current.tasks[1].title).toBe('Existing')
+  })
+})
+
+// ── sortedByPriority ──────────────────────────────────────────────────────────
+
+describe('useTasks – sortedByPriority', () => {
+  it('returns tasks sorted high > medium > low', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => {
+      result.current.addTask(addInput({ title: 'Low', priority: 'low' }))
+      result.current.addTask(addInput({ title: 'High', priority: 'high' }))
+      result.current.addTask(addInput({ title: 'Med', priority: 'medium' }))
+    })
+    const sorted = result.current.sortedByPriority
+    expect(sorted[0].priority).toBe('high')
+    expect(sorted[1].priority).toBe('medium')
+    expect(sorted[2].priority).toBe('low')
+  })
+
+  it('does not mutate the original tasks array order', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => {
+      result.current.addTask(addInput({ title: 'Low', priority: 'low' }))
+      result.current.addTask(addInput({ title: 'High', priority: 'high' }))
+    })
+    // tasks[] is newest-first; sortedByPriority should differ
+    expect(result.current.tasks[0].priority).toBe('high')
+    expect(result.current.sortedByPriority[0].priority).toBe('high')
+    expect(result.current.tasks).toHaveLength(2)
+  })
+})
+
+// ── localStorage ──────────────────────────────────────────────────────────────
+
+describe('useTasks – localStorage persistence', () => {
+  it('persists tasks when they change', () => {
+    const { result } = renderHook(() => useTasks(null))
+    act(() => { result.current.addTask(addInput({ title: 'Saved' })) })
+    const stored = JSON.parse(localStorage.getItem('todo-tasks') ?? '[]') as { title: string }[]
+    expect(stored[0].title).toBe('Saved')
+  })
+
+  it('loads tasks from localStorage on mount', () => {
+    localStorage.setItem('todo-tasks', JSON.stringify([
+      { id: 't1', title: 'From storage', completed: false, priority: 'medium', tags: [], subtasks: [], createdAt: new Date().toISOString() }
+    ]))
+    const { result } = renderHook(() => useTasks(null))
+    expect(result.current.tasks[0].title).toBe('From storage')
+  })
+})
+
+// ── authenticated mode ────────────────────────────────────────────────────────
+
+describe('useTasks – authenticated mode (userId provided)', () => {
+  it('initialises with empty tasks and triggers supabase load', async () => {
+    const { result } = renderHook(() => useTasks('user-abc'))
+    await waitFor(() => { expect(result.current.tasks).toHaveLength(0) })
+  })
+
+  it('addTask updates local state and calls supabase insert', async () => {
+    const { result } = renderHook(() => useTasks('user-abc'))
+    await waitFor(() => expect(result.current.tasks).toHaveLength(0))
+    act(() => { result.current.addTask(addInput({ title: 'Auth task' })) })
+    expect(result.current.tasks).toHaveLength(1)
+    expect(result.current.tasks[0].title).toBe('Auth task')
+  })
+
+  it('toggleTask updates local state in authenticated mode', async () => {
+    const { result } = renderHook(() => useTasks('user-abc'))
+    await waitFor(() => expect(result.current.tasks).toHaveLength(0))
+    act(() => { result.current.addTask(addInput({ title: 'Toggle me' })) })
+    const id = result.current.tasks[0].id
+    act(() => { result.current.toggleTask(id) })
+    expect(result.current.tasks[0].completed).toBe(true)
+  })
+
+  it('updateTask updates local state in authenticated mode', async () => {
+    const { result } = renderHook(() => useTasks('user-abc'))
+    await waitFor(() => expect(result.current.tasks).toHaveLength(0))
+    act(() => { result.current.addTask(addInput({ title: 'Old title' })) })
+    const id = result.current.tasks[0].id
+    act(() => { result.current.updateTask(id, { title: 'New title' }) })
+    expect(result.current.tasks[0].title).toBe('New title')
+  })
+
+  it('deleteTask removes task in authenticated mode', async () => {
+    const { result } = renderHook(() => useTasks('user-abc'))
+    await waitFor(() => expect(result.current.tasks).toHaveLength(0))
+    act(() => { result.current.addTask(addInput({ title: 'Delete me' })) })
+    const id = result.current.tasks[0].id
+    act(() => { result.current.deleteTask(id) })
+    expect(result.current.tasks).toHaveLength(0)
+  })
+
+  it('clearList removes all tasks in authenticated mode', async () => {
+    const { result } = renderHook(() => useTasks('user-abc'))
+    await waitFor(() => expect(result.current.tasks).toHaveLength(0))
+    act(() => { result.current.addTask(addInput({ title: 'A' })) })
+    act(() => { result.current.addTask(addInput({ title: 'B' })) })
+    act(() => { result.current.clearList() })
+    expect(result.current.tasks).toHaveLength(0)
+  })
+
+  it('addTask with tags and priority in authenticated mode', async () => {
+    const { result } = renderHook(() => useTasks('user-abc'))
+    await waitFor(() => expect(result.current.tasks).toHaveLength(0))
+    act(() => { result.current.addTask(addInput({ title: 'Tagged', tags: ['work'], priority: 'high' })) })
+    expect(result.current.tasks[0].tags).toContain('work')
+    expect(result.current.tasks[0].priority).toBe('high')
   })
 })

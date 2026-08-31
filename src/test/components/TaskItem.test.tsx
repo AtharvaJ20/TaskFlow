@@ -159,4 +159,48 @@ describe('TaskItem – interactions', () => {
     await userEvent.type(input, 'New title{Enter}')
     expect(props.onUpdate).toHaveBeenCalledWith('task-1', { title: 'New title' })
   })
+
+  it('cancels inline edit on Escape and does not call onUpdate', async () => {
+    const props = defaultProps(makeTask({ title: 'Original' }))
+    render(<TaskItem {...props} />)
+    await userEvent.dblClick(screen.getByRole('button', { name: /edit task: original/i }))
+    const input = screen.getByLabelText(/edit task title/i)
+    await userEvent.clear(input)
+    await userEvent.type(input, 'Discarded')
+    await userEvent.keyboard('{Escape}')
+    expect(props.onUpdate).not.toHaveBeenCalled()
+    // Title button returns with original label
+    expect(screen.getByRole('button', { name: /edit task: original/i })).toBeInTheDocument()
+  })
+
+  it('does not call onUpdate when title is unchanged on Enter', async () => {
+    const props = defaultProps(makeTask({ title: 'Same title' }))
+    render(<TaskItem {...props} />)
+    await userEvent.dblClick(screen.getByRole('button', { name: /edit task: same title/i }))
+    await userEvent.keyboard('{Enter}')
+    expect(props.onUpdate).not.toHaveBeenCalled()
+  })
+
+  it('shows Move task up/down buttons and calls onMoveUp when clicked', async () => {
+    const onMoveUp = vi.fn()
+    const onMoveDown = vi.fn()
+    const task = makeTask()
+    render(<TaskItem {...defaultProps(task)} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />)
+    await userEvent.click(screen.getByRole('button', { name: /move task up/i }))
+    expect(onMoveUp).toHaveBeenCalledWith('task-1')
+  })
+
+  it('calls onMoveDown when Move task down button is clicked', async () => {
+    const onMoveDown = vi.fn()
+    const task = makeTask()
+    render(<TaskItem {...defaultProps(task)} onMoveUp={vi.fn()} onMoveDown={onMoveDown} />)
+    await userEvent.click(screen.getByRole('button', { name: /move task down/i }))
+    expect(onMoveDown).toHaveBeenCalledWith('task-1')
+  })
+
+  it('shows custom recurrence days label', () => {
+    const task = makeTask({ recurrence: { frequency: 'custom', interval: 1, customDays: [1, 3, 5] } })
+    render(<TaskItem {...defaultProps(task)} />)
+    expect(screen.getByTitle(/repeats mo, we, fr/i)).toBeInTheDocument()
+  })
 })

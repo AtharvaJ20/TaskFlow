@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import FocusMode from '../../components/FocusMode'
 import type { Task } from '../../types/task'
 
@@ -161,6 +161,35 @@ describe('FocusMode – interactions', () => {
     render(<FocusMode {...props} />)
     await userEvent.keyboard('{Escape}')
     expect(props.onClose).toHaveBeenCalledOnce()
+  })
+})
+
+describe('FocusMode – timer expiry', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('switches to break mode (05:00) when 25-minute work timer expires', async () => {
+    vi.useFakeTimers()
+    const props = defaultProps(makeTask())
+    render(<FocusMode {...props} />)
+
+    // Start the timer
+    act(() => { fireEvent.click(screen.getByRole('button', { name: /start timer/i })) })
+
+    // Advance 25 minutes + 1 second — timer expires and switches to break mode
+    await act(async () => { vi.advanceTimersByTime(25 * 60 * 1000 + 1000) })
+
+    expect(screen.getByText('05:00')).toBeInTheDocument()
+  })
+
+  it('calls onLogTime with work seconds after work timer expires', async () => {
+    vi.useFakeTimers()
+    const props = defaultProps(makeTask({ id: 'task-timer' }))
+    render(<FocusMode {...props} />)
+
+    act(() => { fireEvent.click(screen.getByRole('button', { name: /start timer/i })) })
+    await act(async () => { vi.advanceTimersByTime(25 * 60 * 1000 + 1000) })
+
+    expect(props.onLogTime).toHaveBeenCalledWith('task-timer', 25 * 60)
   })
 })
 

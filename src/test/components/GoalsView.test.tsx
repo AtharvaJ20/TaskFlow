@@ -135,4 +135,17 @@ describe('GoalsView – with goals', () => {
     render(<GoalsView {...defaultProps()} goals={[goal]} entries={[entry]} />)
     expect(screen.getByRole('button', { name: /history/i })).toBeInTheDocument()
   })
+
+  it('expands history when the History toggle is clicked', async () => {
+    const goal = makeGoal({ id: 'g1', goalType: 'metric', startValue: 0, targetValue: 100, unit: 'km' })
+    const entry: GoalProgressEntry = { id: 'e1', goalId: 'g1', value: 42, loggedAt: '2025-06-15T10:00:00.000Z' }
+    render(<GoalsView {...defaultProps()} goals={[goal]} entries={[entry]} />)
+    await userEvent.click(screen.getByRole('button', { name: /history/i }))
+    expect(screen.getAllByText('42km').length).toBeGreaterThan(0)
+  })
+
+  it('shows the EditButton component (svg edit icon accessible via aria-label)', () => {
+    render(<GoalsView {...defaultProps()} goals={[makeGoal({ title: 'My Goal' })]} />)
+    expect(screen.getByRole('button', { name: /edit goal/i })).toBeInTheDocument()
+  })
 })
