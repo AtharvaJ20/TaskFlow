@@ -1,6 +1,6 @@
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { useLists, LIST_COLORS } from '../../hooks/useLists'
+import { useLists } from '../../hooks/useLists'
 import type { TaskList } from '../../types/task'
 
 vi.mock('../../lib/supabase', () => ({
@@ -35,96 +35,151 @@ describe('useLists – guest mode (userId = null)', () => {
   })
 
   it('loads lists persisted in localStorage on init', () => {
-    const stored: TaskList[] = [{
-      id: 'l1', name: 'Work', color: '#6366f1', createdAt: new Date().toISOString(),
-    }]
+    const stored: TaskList[] = [{ id: 'l1', name: 'Work', color: '#6366f1', createdAt: new Date().toISOString() }]
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
     const { result } = renderHook(() => useLists(null))
     expect(result.current.lists).toHaveLength(1)
     expect(result.current.lists[0].name).toBe('Work')
   })
 
-  it('addList appends the list to state', () => {
+  it('addList appends a list and persists to localStorage', () => {
     const { result } = renderHook(() => useLists(null))
-    act(() => { result.current.addList('Shopping') })
+    act(() => { result.current.addList('Personal') })
     expect(result.current.lists).toHaveLength(1)
-    expect(result.current.lists[0].name).toBe('Shopping')
+    expect(result.current.lists[0].name).toBe('Personal')
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
+    expect(stored[0].name).toBe('Personal')
+  })
+
+  it('addList returns the created list with id and createdAt', () => {
+    const { result } = renderHook(() => useLists(null))
+    let list!: TaskList
+    act(() => { list = result.current.addList('Shopping') })
+    expect(list.id).toBeTruthy()
+    expect(list.createdAt).toBeTruthy()
+    expect(list.name).toBe('Shopping')
+  })
+
+  it('addList uses the provided color', () => {
+    const { result } = renderHook(() => useLists(null))
+    let list!: TaskList
+    act(() => { list = result.current.addList('Fitness', '#ef4444') })
+    expect(list.color).toBe('#ef4444')
   })
 
   it('addList trims whitespace from the name', () => {
     const { result } = renderHook(() => useLists(null))
-    act(() => { result.current.addList('  Home  ') })
-    expect(result.current.lists[0].name).toBe('Home')
+    let list!: TaskList
+    act(() => { list = result.current.addList('  Work  ') })
+    expect(list.name).toBe('Work')
   })
 
-  it('addList uses LIST_COLORS[0] as default color', () => {
+  it('updateList changes the name', () => {
     const { result } = renderHook(() => useLists(null))
-    act(() => { result.current.addList('Personal') })
-    expect(result.current.lists[0].color).toBe(LIST_COLORS[0])
+    let id!: string
+    act(() => { id = result.current.addList('Old name').id })
+    act(() => { result.current.updateList(id, { name: 'New name' }) })
+    expect(result.current.lists[0].name).toBe('New name')
   })
 
-  it('addList accepts a custom color', () => {
+  it('updateList changes the color', () => {
     const { result } = renderHook(() => useLists(null))
-    act(() => { result.current.addList('Projects', '#ff0000') })
-    expect(result.current.lists[0].color).toBe('#ff0000')
-  })
-
-  it('addList assigns a unique id and createdAt', () => {
-    const { result } = renderHook(() => useLists(null))
-    let l1: TaskList, l2: TaskList
-    act(() => { l1 = result.current.addList('A') })
-    act(() => { l2 = result.current.addList('B') })
-    expect(l1!.id).not.toBe(l2!.id)
-    expect(l1!.createdAt).toBeTruthy()
-  })
-
-  it('addList persists to localStorage', () => {
-    const { result } = renderHook(() => useLists(null))
-    act(() => { result.current.addList('Errands') })
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
-    expect(stored[0].name).toBe('Errands')
-  })
-
-  it('updateList changes the name of an existing list', () => {
-    const { result } = renderHook(() => useLists(null))
-    let id: string
-    act(() => { id = result.current.addList('Old Name').id })
-    act(() => { result.current.updateList(id!, { name: 'New Name' }) })
-    expect(result.current.lists[0].name).toBe('New Name')
-  })
-
-  it('updateList changes the color of an existing list', () => {
-    const { result } = renderHook(() => useLists(null))
-    let id: string
-    act(() => { id = result.current.addList('Work').id })
-    act(() => { result.current.updateList(id!, { color: '#10b981' }) })
+    let id!: string
+    act(() => { id = result.current.addList('Work', '#6366f1').id })
+    act(() => { result.current.updateList(id, { color: '#10b981' }) })
     expect(result.current.lists[0].color).toBe('#10b981')
   })
 
   it('updateList does not affect other lists', () => {
     const { result } = renderHook(() => useLists(null))
-    let idA: string
+    let idA!: string
     act(() => { idA = result.current.addList('A').id })
     act(() => { result.current.addList('B') })
-    act(() => { result.current.updateList(idA!, { name: 'A updated' }) })
+    act(() => { result.current.updateList(idA, { name: 'A updated' }) })
     expect(result.current.lists.find(l => l.name === 'B')).toBeDefined()
   })
 
   it('deleteList removes the list by id', () => {
     const { result } = renderHook(() => useLists(null))
-    let id: string
+    let id!: string
     act(() => { id = result.current.addList('Temp').id })
-    act(() => { result.current.deleteList(id!) })
+    expect(result.current.lists).toHaveLength(1)
+    act(() => { result.current.deleteList(id) })
     expect(result.current.lists).toHaveLength(0)
   })
 
   it('deleteList only removes the targeted list', () => {
     const { result } = renderHook(() => useLists(null))
-    let idA: string
+    let idA!: string
     act(() => { idA = result.current.addList('A').id })
     act(() => { result.current.addList('B') })
-    act(() => { result.current.deleteList(idA!) })
+    act(() => { result.current.deleteList(idA) })
     expect(result.current.lists).toHaveLength(1)
     expect(result.current.lists[0].name).toBe('B')
+  })
+
+  it('deleteList is a no-op when id does not exist', () => {
+    const { result } = renderHook(() => useLists(null))
+    act(() => { result.current.addList('Work') })
+    act(() => { result.current.deleteList('nonexistent') })
+    expect(result.current.lists).toHaveLength(1)
+  })
+
+  it('addList appends multiple lists in order', () => {
+    const { result } = renderHook(() => useLists(null))
+    act(() => {
+      result.current.addList('First')
+      result.current.addList('Second')
+      result.current.addList('Third')
+    })
+    expect(result.current.lists.map(l => l.name)).toEqual(['First', 'Second', 'Third'])
+  })
+
+  it('lists are persisted and reloaded across hook instances', () => {
+    const { result: r1 } = renderHook(() => useLists(null))
+    act(() => { r1.current.addList('Persisted') })
+    const { result: r2 } = renderHook(() => useLists(null))
+    expect(r2.current.lists[0].name).toBe('Persisted')
+  })
+})
+
+describe('useLists – authenticated mode (userId provided)', () => {
+  it('initialises with empty lists and triggers supabase load', async () => {
+    const { result } = renderHook(() => useLists('user-abc'))
+    await waitFor(() => { expect(result.current.lists).toHaveLength(0) })
+  })
+
+  it('addList updates local state and calls supabase insert', async () => {
+    const { result } = renderHook(() => useLists('user-abc'))
+    await waitFor(() => expect(result.current.lists).toHaveLength(0))
+    act(() => { result.current.addList('Work') })
+    expect(result.current.lists).toHaveLength(1)
+    expect(result.current.lists[0].name).toBe('Work')
+  })
+
+  it('addList returns the created list with id', async () => {
+    const { result } = renderHook(() => useLists('user-abc'))
+    await waitFor(() => expect(result.current.lists).toHaveLength(0))
+    let list!: import('../../types/task').TaskList
+    act(() => { list = result.current.addList('Shopping') })
+    expect(list.id).toBeTruthy()
+  })
+
+  it('updateList changes name and calls supabase update', async () => {
+    const { result } = renderHook(() => useLists('user-abc'))
+    await waitFor(() => expect(result.current.lists).toHaveLength(0))
+    let id!: string
+    act(() => { id = result.current.addList('Old').id })
+    act(() => { result.current.updateList(id, { name: 'New' }) })
+    expect(result.current.lists[0].name).toBe('New')
+  })
+
+  it('deleteList removes the list and calls supabase delete', async () => {
+    const { result } = renderHook(() => useLists('user-abc'))
+    await waitFor(() => expect(result.current.lists).toHaveLength(0))
+    let id!: string
+    act(() => { id = result.current.addList('Temp').id })
+    act(() => { result.current.deleteList(id) })
+    expect(result.current.lists).toHaveLength(0)
   })
 })

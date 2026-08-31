@@ -1,9 +1,10 @@
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 
 // jsdom does not implement matchMedia — provide a no-op stub
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
+  configurable: true,
   value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
@@ -46,11 +47,12 @@ class MockAudioContext {
   close() { return Promise.resolve() }
   resume() { return Promise.resolve() }
 }
-Object.defineProperty(window, 'AudioContext', { writable: true, value: MockAudioContext })
+Object.defineProperty(window, 'AudioContext', { writable: true, configurable: true, value: MockAudioContext })
 
 // jsdom does not implement HTMLAudioElement.play
 Object.defineProperty(window, 'Audio', {
   writable: true,
+  configurable: true,
   value: vi.fn().mockImplementation(() => ({
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
@@ -60,8 +62,10 @@ Object.defineProperty(window, 'Audio', {
   })),
 })
 
-// jsdom does not implement Notification
+// jsdom does not implement Notification; Node.js 22+ exposes a native Notification on Linux
+// so we need configurable:true to allow re-definition
 Object.defineProperty(window, 'Notification', {
   writable: true,
+  configurable: true,
   value: Object.assign(vi.fn(), { permission: 'denied' as NotificationPermission }),
 })
