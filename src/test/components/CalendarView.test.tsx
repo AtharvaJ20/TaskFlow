@@ -42,7 +42,9 @@ describe('CalendarView – structure', () => {
 describe('CalendarView – navigation', () => {
   it('advances to next month when Next is clicked', async () => {
     render(<CalendarView tasks={[]} onOpenModal={vi.fn()} />)
+    // Pin to day 1 before adding a month to avoid overflow (e.g. Aug 31 + 1mo = Oct 1)
     const next = new Date()
+    next.setDate(1)
     next.setMonth(next.getMonth() + 1)
     await userEvent.click(screen.getByRole('button', { name: /next month/i }))
     expect(screen.getByText(format(next, 'MMMM yyyy'))).toBeInTheDocument()
@@ -51,6 +53,7 @@ describe('CalendarView – navigation', () => {
   it('goes back to previous month when Previous is clicked', async () => {
     render(<CalendarView tasks={[]} onOpenModal={vi.fn()} />)
     const prev = new Date()
+    prev.setDate(1)
     prev.setMonth(prev.getMonth() - 1)
     await userEvent.click(screen.getByRole('button', { name: /previous month/i }))
     expect(screen.getByText(format(prev, 'MMMM yyyy'))).toBeInTheDocument()
